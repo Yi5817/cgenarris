@@ -66,6 +66,7 @@ void mpi_generate_cocrystals_with_vdw_matrix(
     int n_mol_types,
     MPI_Comm world_comm);
 
+%apply (float INPLACE_ARRAY2[2][3]) {(float lattice_vector_2d_from_geo[2][3])};
 void mpi_generate_layer_with_vdw_cutoff_matrix(
 	float *vdw_matrix,
 	int dim1,
