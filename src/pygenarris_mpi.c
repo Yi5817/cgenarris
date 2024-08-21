@@ -477,8 +477,8 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                     if( (i+j) % vol_attempt == 0 && i+j != 0)
                     {
                         do {volume = normal_dist_ab(volume_mean, volume_std);} while(volume < 0.1);
-                        if(my_rank == 0)
-                            printf("#Rank %8d: Completed %ld attempts.\n", 0, (long)(i+j)*total_ranks);
+                        // if(my_rank == 0)
+                        //     printf("#Rank %8d: Completed %ld attempts.\n", 0, (long)(i+j)*total_ranks);
                         //printf("fail count - %d / %d \n", fail_count, i);
                         fflush(stdout);
                     }
@@ -510,7 +510,7 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                         if (counter < spg_num_structures)
                         {
                             print_crystal2file(random_crystal, out_file);
-                            printf("#Rank %8d: Generation successful.\n", my_rank);
+                            // printf("#Rank %8d: Generation successful.\n", my_rank);
                             counter++;
                             success_flag = 1;
                             //int spglib_spg = detect_spg_using_spglib(random_crystal);
@@ -534,7 +534,7 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                             if(counter < spg_num_structures)
                             {
                                 print_crystal2file(random_crystal, out_file);
-                                printf("#Rank %8d: Generation successful.\n", rank);
+                                // printf("#Rank %8d: Generation successful.\n", rank);
                                 counter++;
                             }
                             else
