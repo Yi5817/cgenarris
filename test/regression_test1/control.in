@@ -1,0 +1,46 @@
+# Molecule is read from geometry.in
+# Some settings can be omitted. They will be defaulted.
+
+
+# Number of atoms in the cell (Required)
+Z                       2 
+
+# Structures per space group (Required)
+number_of_structures    10
+
+# Specific radius proportion (Required)
+sr                      0.85
+
+# Mean volume of the unit cell (gaussian distribution) (Required)
+volume_mean             600
+
+# Standard deviation of the gaussian distribution (Required)
+volume_std              40
+
+# Numerical tolerance. Important for special positions
+# Set it to low value (~0.00001) to omit special positions
+tolerance               0.1
+
+# Number of attempts before moving to next space group
+max_attempts            200000
+
+# Spacegroup distribution type (Required)
+# Options are 'standard', 'uniform', 'csd', 'chiral'
+spg_distribution_type   standard
+
+# Random seed for reproducibilty (Optional)
+# Set it to 0 (default) or omit to generate a time-dependent seed
+random_seed             223344
+
+# No of failed attempts after which unit cell volume is redrawn. default: 100000
+# If value is 0, then default is used. (Optional)
+volume_attempts          0		
+
+# Deviation of principal components of lattices. (Optional)
+# Low values (~0.1) generate cubic-like lattices. Default: 0.4
+norm_dev                0.4 
+
+# Angle standard deviation controls the obliqueness of lattices. (Optional)
+# Applicable for only non-orthogonal cells. Default: 8 degrees
+angle_std               8
+

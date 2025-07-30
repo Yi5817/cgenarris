@@ -1,0 +1,47 @@
+#molecule is read from geometry.in
+
+## if molecular crystal generation, enter 1, else 0 for generate layer
+crystal_generation      0
+
+#####for layer generation only. if not use, please leave it blank ########
+lattice_vector_a        2.8837999999999999        0.0000000000000000        0.0000000000000000
+
+lattice_vector_b        -1.4418999999999993        2.4974440594335645        0.0000000000000000
+
+interface_area_mean     0
+
+interface_area_std      0
+        
+volume_multiplier       2
+##### layer specific configuration done ############
+
+
+#number of atoms in the cell
+Z                       8
+
+#this is the number of structures per space group
+number_of_structures    80
+
+#specific radius proportion
+sr                      0.75
+
+#mean volume of the unit cell (gaussian distribution)
+volume_mean             1173
+
+#standard deviation of the gaussian distribution
+volume_std              40
+
+#numerical tolerance. important for special positions
+tolerance               0.1
+
+#number of attempts before moving to next space group
+max_attempts            1000000000
+
+#spacegroup distribution type
+spg_distribution_type   uniform
+
+#random seed for reproducibilty; set it to 0 (default) to generate a time-dependent seed
+random_seed             0
+
+#no of failed attempts after which unit cell volume is redrawn. default: 100000
+volume_attempt          100000		
