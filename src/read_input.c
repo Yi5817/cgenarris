@@ -384,3 +384,12 @@ void print_input_settings(Settings set)
 
 }
 
+void print_input_geometry(molecule* mol)
+{
+    printf("MOLECULAR GEOMETRY:\n");
+    printf("-----------------------------\n");
+    print_molecule(mol);
+    printf("-----------------------------\n");
+    printf("\n");
+}
+
