@@ -20,6 +20,9 @@ src/randomgen.c
 src/read_input.c
 src/spg_generation.c
 
+# Layer groups
+src/lattice_generator_layer.c
+
 # spglib sources
 src/spglib_src/arithmetic.c
 src/spglib_src/cell.c
@@ -57,4 +60,3 @@ enable_testing()
 add_test(NAME cgenarris_test
          COMMAND cgenarris_test
          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/regression_test1/)
-

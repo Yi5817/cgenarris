@@ -384,6 +384,45 @@ void print_input_settings(Settings set)
 
 }
 
+void print_input_settings_layer(int* num_structures,
+                          	int* Z,
+                          	float* Zp_max,
+                          	float* volume_mean,
+                          	float* volume_std,
+                          	float* interface_area_mean,
+                          	float* interface_area_std,
+                          	int* volume_multiplier,
+                          	float *sr,
+                         	float global_lattice_vector_2d[2][3],
+                          	long *max_attempts,
+                          	char * spg_dist_type,
+                          	int *vol_attempt,
+                          	int *random_seed)
+{
+    *Zp_max = 192; //useless argument
+    printf("INPUT SETTINGS:\n");
+    printf("-----------------------------\n");
+    printf("Number of structures per layer group:         %d \n", *num_structures);
+    printf("Number of molecules in the cell:              %d\n", *Z);
+    printf("Mean volume of unit cell:                     %f\n", *volume_mean);
+    printf("Standard deviation of unit cell volume:       %f\n", *volume_std);
+    printf("Mean interface area:                          %f\n", *interface_area_mean);
+    printf("Standard deviation of interface area:         %f\n", *interface_area_std);
+    printf("Volume Multiplier:                            %d\n", *volume_multiplier);
+    printf("Layergroup distribution type:                 %s\n", spg_dist_type);
+    printf("Lattice vector:                               [[%f,%f,%f],[%f,%f,%f]]\n",global_lattice_vector_2d[0][0],
+                                                global_lattice_vector_2d[0][1],global_lattice_vector_2d[0][2],
+                                                global_lattice_vector_2d[1][0],global_lattice_vector_2d[1][1],
+                                                global_lattice_vector_2d[1][2]  );
+    printf("Maximum attempts per layer group:             %ld\n", *max_attempts);
+    printf("Volume attempts:                              %d\n", *vol_attempt);
+    printf("Random seed:                                  %d\n", *random_seed);
+    printf("Tolerance:                                    %f\n", TOL);
+    printf("-----------------------------\n\n");
+
+}
+
+
 void print_input_geometry(molecule* mol)
 {
     printf("MOLECULAR GEOMETRY:\n");
@@ -392,4 +431,5 @@ void print_input_geometry(molecule* mol)
     printf("-----------------------------\n");
     printf("\n");
 }
+
 
