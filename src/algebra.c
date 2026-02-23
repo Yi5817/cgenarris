@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "algebra.h"
+#include "layer_group_operation_database.h"
 #include "randomgen.h"
 
 #define PI 3.141592653
@@ -523,5 +524,25 @@ void get_euler_from_rotation_matrix(float rot_mat[3][3], float angles[3])
     }
 
     angles[0] *= rad2deg; angles[1] *= rad2deg; angles[2] *= rad2deg;
+}
+
+int get_lg_symmetry(int hall_number,double translations [192] [3],int rotations[192][3][3])
+{
+    int num_operation =  all_lg_operation_database[hall_number-1].num_operations;
+    int i;
+    for (i=0; i < num_operation;i++)
+	{
+
+	    int rot [3][3];
+	    copy_intmat3b3_constintmat3b3bN(rot,all_lg_operation_database[hall_number-1].rotation,i);
+	    copy_intmat3b3bN_intmat3b3(rotations, rot, i);
+	    double trans [3];
+	    copy_doubvector3_vector3bN(trans, all_lg_operation_database[hall_number-1].translation, i);
+	    copy_doubvector3bN_vector3(trans, translations, i);
+
+
+	}
+    return num_operation;
+
 }
 

@@ -89,6 +89,7 @@ pygenarris_mpi = Extension(
         "check_structure.c",
         "read_input.c",
         "randomgen.c",
+        "lattice_generator_layer.c",
         "pygenarris_mpi_utils.c",
     ]
     + sources_spglib,
