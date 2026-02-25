@@ -24,7 +24,7 @@ Random molecular crystal &amp; layer structure generator written in C with Pytho
 | Name | Contribution | GitHub |
 |------|-------------|--------|
 | Rithwik Tom | Original author | [@ritwit](https://github.com/ritwit) |
-| Yi Yang | Developer | [@Yi5817](https://github.com/yangyi0120) |
+| Yi Yang | Developer | [@Yi5817](https://github.com/Yi5817) |
 | Haoran Ni | Layer group generator | [@haoran-ni](https://github.com/haoran-ni) |
 
 ## License
