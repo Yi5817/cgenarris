@@ -1,13 +1,16 @@
-<h1 align="center"> cgenarris </h1>
-C code and Python API for random molecular crystal structure generation
+<h1 align="center">cgenarris</h1>
 
-## Authors
+<p align="center">
+Random molecular crystal &amp; layer structure generator written in C with Python bindings.
+</p>
 
-**Rithwik Tom** - *Original author*  
-GitHub: [@ritwit](https://github.com/ritwit)
+<p align="center">
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-blue.svg" alt="License"></a>
+</p>
 
+## Overview
 
-## LICENSE
+**cgenarris** is an MPI-parallel program that generates random molecular crystal structures based on space group symmetry. It supports all 230 space groups for 3D crystals and layer groups for 2D structures.
 
 **Key capabilities:**
 
