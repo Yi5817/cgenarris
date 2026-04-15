@@ -588,10 +588,14 @@ void average_positions_using_list(float     *tempx,
 int detect_spg_using_spglib(crystal* xtal)
 {
     float tol = 1e-3;
-    //print_crystal(xtal);
+    int num_atoms_in_cell = xtal->Z * xtal-> num_atoms_in_molecule ;
+    if (num_atoms_in_cell < 1 || xtal->Xcord == NULL ||
+        xtal->Ycord == NULL || xtal->Zcord == NULL || xtal->atoms == NULL)
+    {
+        return 0;
+    }
     convert_xtal_to_fractional(xtal);
     //variable declarations
-    int num_atoms_in_cell = xtal->Z * xtal-> num_atoms_in_molecule ;
     int types[num_atoms_in_cell];
     double positions[num_atoms_in_cell][3];
     char atom[num_atoms_in_cell*2];

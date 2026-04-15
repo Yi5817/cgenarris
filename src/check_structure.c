@@ -67,6 +67,12 @@ int check_structure_with_vdw_matrix(crystal xtal,
     int total_atoms = xtal.Z * xtal.num_atoms_in_molecule;
     int mol_id[xtal.Z];
 
+    for(int i = 0; i < total_atoms; i++)
+    {
+        if(isnan(xtal.Xcord[i]) || isnan(xtal.Ycord[i]) || isnan(xtal.Zcord[i]))
+            return 0;
+    }
+
     if( !fast_screener_vdw(xtal, vdw_matrix) )
         return 0;
 
