@@ -117,6 +117,10 @@ int auto_align_and_generate_at_position(crystal *Xtal,
     copy_vector3_vector3bN(trans_vec,
                           spg_positions[spg-1].first_position_trans,
                           wyckoff_pos);
+    
+    Xtal->euler_angles[0] = 0;
+    Xtal->euler_angles[1] = 0;
+    Xtal->euler_angles[2] = 0;
 
     //if general position, rotate molecule randomly
     if ( get_degrees_of_freedom(spg, wyckoff_pos) == 2)
