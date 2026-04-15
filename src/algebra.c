@@ -359,6 +359,8 @@ void normalise_vector3(float a[3])
 {
     float norm;
     norm = vector3_norm(a);
+    if(norm < 1e-12)
+        return;
     a[0] /= norm;
     a[1] /= norm;
     a[2] /= norm;
