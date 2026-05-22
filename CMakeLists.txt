@@ -48,13 +48,26 @@ src/spglib_src/tetrahedron_method.c
 
 add_executable(${PROJECT_NAME} ${SOURCES} src/cgenarris_mpi.c)
 add_executable(cgenarris_test ${SOURCES} src/test_main.c)
+add_executable(test_check_structure ${SOURCES} src/test_check_structure.c)
 target_link_libraries(${PROJECT_NAME} m)
 target_link_libraries(${PROJECT_NAME} ${MPI_LIBRARIES})
 target_link_libraries(cgenarris_test m)
 target_link_libraries(cgenarris_test ${MPI_LIBRARIES})
+target_link_libraries(test_check_structure m)
+target_link_libraries(test_check_structure ${MPI_LIBRARIES})
 
 enable_testing()
 add_test(NAME cgenarris_test
          COMMAND cgenarris_test
          WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/regression_test1/)
+
+# Bad-structure rejection test: a Z=4 overlapping structure produced when
+# the user requested Z=2. The vdw matrix is sized for Z=2, so the check
+# must reject the mismatched structure. Expected exit code: 1 (FAIL).
+add_test(NAME check_structure_rejects_bad
+         COMMAND test_check_structure
+            ${PROJECT_SOURCE_DIR}/test/check_structure_test/geometry.in
+            ${PROJECT_SOURCE_DIR}/test/check_structure_test/cutoff_matrix.txt
+            ${PROJECT_SOURCE_DIR}/test/check_structure_test/geometry.out)
+set_tests_properties(check_structure_rejects_bad PROPERTIES WILL_FAIL TRUE)
 
