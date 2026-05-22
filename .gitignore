@@ -33,6 +33,8 @@
 *.x86_64
 *.hex
 
+!test/**/geometry.out
+
 # Debug files
 *.dSYM/
 *.su

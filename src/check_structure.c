@@ -67,6 +67,11 @@ int check_structure_with_vdw_matrix(crystal xtal,
     int total_atoms = xtal.Z * xtal.num_atoms_in_molecule;
     int mol_id[xtal.Z];
 
+    // Reject if the generated xtal has more atoms than the vdw matrix can
+    // describe. This happens, e.g., when special-position alignment fails
+    if (total_atoms != dim1 || total_atoms != dim2)
+        return 0;
+
     for(int i = 0; i < total_atoms; i++)
     {
         if(isnan(xtal.Xcord[i]) || isnan(xtal.Ycord[i]) || isnan(xtal.Zcord[i]))
@@ -249,14 +254,9 @@ static int fast_screener_vdw(crystal xtal, float *vdw_matrix)
     int m = xtal.Z;                 //number of molecules in a unit cell;
                                 // numberof atom in a unit cell = N*m
     int total_atoms = N*m;
-    static float mol_len = 0;
-    static int first_time = 1;
-
-    if (first_time)
-    {
-        first_time = 0;
-        mol_len = find_mol_len(xtal.Xcord, xtal.Ycord, xtal.Zcord, N);
-    }
+    // Recompute on every call: caching across calls is unsafe (the first
+    // crystal may have had garbage/NaN coords) and the cost is negligible.
+    float mol_len = find_mol_len(xtal.Xcord, xtal.Ycord, xtal.Zcord, N);
 
     float small_number = MAXVDW;
 
@@ -268,33 +268,28 @@ static int fast_screener_vdw(crystal xtal, float *vdw_matrix)
         {
             //check if the molecule COM are far. if they are, dont
             //bother checking distances
-            if (j == i + N)
-            {   float com2[3];
-                compute_molecule_COM( xtal, com2, j);
-                if( sqrt ((com1[0] - com2[0])*(com1[0] - com2[0])+
-                          (com1[1] - com2[1])*(com1[1] - com2[1])+
-                          (com1[2] - com2[2])*(com1[2] - com2[2]))
-                    >     (mol_len + small_number)                  )
-                    continue;
-            }
+            float com2[3];
+            compute_molecule_COM( xtal, com2, j);
+            if( sqrt ((com1[0] - com2[0])*(com1[0] - com2[0])+
+                      (com1[1] - com2[1])*(com1[1] - com2[1])+
+                      (com1[2] - com2[2])*(com1[2] - com2[2]))
+                >     (mol_len + small_number)                  )
+                continue;
 
-            //molecule COM are close than molecule length
-            else
+            //molecule COM are closer than molecule length: check atoms
+            for(int k = i; k < i + N; k++)
             {
-                for(int k = i; k < i + N; k++)
+                for (int z = j; z < j + N; z++ )
                 {
-                    for (int z = j; z < j + N; z++ )
-                    {
-                        if(    (xtal.Xcord[k] - xtal.Xcord[z])*
-                               (xtal.Xcord[k] - xtal.Xcord[z])+
-                               (xtal.Ycord[k] - xtal.Ycord[z])*
-                               (xtal.Ycord[k] - xtal.Ycord[z])+
-                               (xtal.Zcord[k] - xtal.Zcord[z])*
-                               (xtal.Zcord[k] - xtal.Zcord[z])
-                               < *(vdw_matrix + total_atoms*k + z) *
-                                 *(vdw_matrix + total_atoms*k + z)  )
-                            return 0;
-                    }
+                    if(    (xtal.Xcord[k] - xtal.Xcord[z])*
+                           (xtal.Xcord[k] - xtal.Xcord[z])+
+                           (xtal.Ycord[k] - xtal.Ycord[z])*
+                           (xtal.Ycord[k] - xtal.Ycord[z])+
+                           (xtal.Zcord[k] - xtal.Zcord[z])*
+                           (xtal.Zcord[k] - xtal.Zcord[z])
+                           < *(vdw_matrix + total_atoms*k + z) *
+                             *(vdw_matrix + total_atoms*k + z)  )
+                        return 0;
                 }
             }
         }
