@@ -72,9 +72,11 @@ int check_structure_with_vdw_matrix(crystal xtal,
     if (total_atoms != dim1 || total_atoms != dim2)
         return 0;
 
+    // Reject NaN and Inf. Inf in particular slips past distance checks below
+    // because Inf-far molecules always look non-overlapping.
     for(int i = 0; i < total_atoms; i++)
     {
-        if(isnan(xtal.Xcord[i]) || isnan(xtal.Ycord[i]) || isnan(xtal.Zcord[i]))
+        if(!isfinite(xtal.Xcord[i]) || !isfinite(xtal.Ycord[i]) || !isfinite(xtal.Zcord[i]))
             return 0;
     }
 
