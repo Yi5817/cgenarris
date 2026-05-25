@@ -381,7 +381,6 @@ void combine_close_molecules(crystal* xtal)
     int total_atoms = Z * N;
     //to count the number of molecules after duplicate removal
     int molecule_counter = 0;
-    int same = 0;
     //for partitioning molecules into different clusters
     int partition_list[Z];
     int averaging_list[Z];
@@ -410,6 +409,11 @@ void combine_close_molecules(crystal* xtal)
         if(partition_list[i/N] != -1)
             continue;
 
+        // Whether this molecule has an overlap match in this iteration.
+        // Must reset per-iteration; a stale `1` from an earlier match would
+        // send unmatched molecules into the averaging branch with an empty
+        // averaging_list and divide tempx by len=0, producing Inf coords.
+        int same = 0;
         float com1[3] = {0,0,0};
         compute_molecule_COM(*xtal, com1, i);
         //print_vec3(com1);
