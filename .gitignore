@@ -88,3 +88,12 @@ Thumbs.db
 
 # Static analysis
 *.sarif
+
+# SWIG-generated wrappers (regenerated at build time)
+*_wrap.c
+src/pygenarris_mpi.py
+src/pygenarris.py
+__pycache__/
+
+# Example / test run output
+test/asu_test/run/
