@@ -11,6 +11,7 @@
 #include "spglib.h"
 #include "mpi.h"
 #include "cgenarris_mpi.h"
+#include "asu_generation.h"
 
 %}
 
@@ -47,8 +48,28 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
 void get_compatible_spg(
     int Z,
     const char *geometry_file);
-    
+
 int num_compatible_spacegroups(int Z, double tolerance);
+
+%apply (double* IN_ARRAY2, int DIM1, int DIM2) {(double *positions, int n_atoms_total, int ncols)};
+%apply (int* IN_ARRAY1, int DIM1) {(int *n_atoms_per_mol, int n_mol_types)};
+%apply (int* IN_ARRAY1, int DIM1) {(int *stoic, int n_mol_types_b)};
+int generate_asymmetric_units(
+    double *positions,
+    int n_atoms_total,
+    int ncols,
+    char *species,
+    int *n_atoms_per_mol,
+    int n_mol_types,
+    int *stoic,
+    int n_mol_types_b,
+    int num_structures,
+    double sr_min,
+    double sr_max,
+    long max_attempts,
+    int random_seed,
+    char *output_file,
+    MPI_Comm world_comm);
 
 //void send_xtal(MPI_Comm comm, int destination, crystal* xtal, int total_atoms);
 //void receive_xtal(MPI_Comm comm, int source, crystal* xtal, int total_atoms);

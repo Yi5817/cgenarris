@@ -19,6 +19,8 @@ src/pygenarris_mpi_utils.c
 src/randomgen.c
 src/read_input.c
 src/spg_generation.c
+src/asu_generation.c
+src/asu_utils.c
 
 # spglib sources
 src/spglib_src/arithmetic.c

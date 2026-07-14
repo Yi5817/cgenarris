@@ -61,6 +61,10 @@ void create_vdw_matrix_from_sr( molecule *mol,
 								float sr,
 								int Z);
 
+// Fills atom_vdw with the van der Waals radius of each atom,
+// where atom holds two chars per atom. Shared by crystal and ASU checks.
+void convert_atom2atom_vdw(char *atom, float *atom_vdw, int num_atoms);
+
 
 
 #endif
