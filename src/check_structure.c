@@ -18,7 +18,6 @@
 #define NORMSQR(a) ( a[0]*a[0] + a[1]*a[1] + a[2]*a[2] )
 #define SQR(x) (x*x)
 
-static void convert_atom2atom_vdw(char *atom,float *atom_vdw, int num_atoms);
 static int fast_screener_vdw(crystal xtal, float *vdw_matrix);
 static int check_pairwise_if_mol_close( float *vdw_matrix, int total_atoms,
     xtal_molecule_pair *mol_pair, float max_dist);
@@ -199,7 +198,7 @@ int structure_checker(crystal *xtal,
  * uses Bondii radii. If you need to add/change vdw radii of an atom
  * to the database, do it here.
  */
-static void convert_atom2atom_vdw(char *atom,float *atom_vdw, int num_atoms)
+void convert_atom2atom_vdw(char *atom,float *atom_vdw, int num_atoms)
 {
 
     for (int i = 0; i < num_atoms; i++)
