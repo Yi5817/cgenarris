@@ -89,18 +89,22 @@ pygenarris_mpi = Extension(
         "read_input.c",
         "randomgen.c",
         "pygenarris_mpi_utils.c",
+        "asu_generation.c",
+        "asu_utils.c",
     ]
     + sources_spglib,
-    extra_compile_args=["-std=gnu99", "-fPIC", "-O3"],
+    extra_compile_args=["-std=gnu99", "-fPIC", "-O3", "-Wno-error=int-conversion"],
+    swig_opts=[
+        "-I./",
+        f"-I{mpi4py.get_include()}",
+    ],
 )
 
 setup(
     name="pygenarris_mpi",
-    version="1.0.0",
-    author="Rithwik Tom",
-    description="""email:rtom@andrew.cmu.edu""",
-    maintainer="Yi Yang",
-    maintainer_email="yi.yang@andrew.cmu.edu",
+    version="2.0.0",
+    author="Yi Yang",
+    author_email="yiy5@andrew.cmu.edu",
     ext_modules=[pygenarris_mpi],
     py_modules=["pygenarris_mpi"],
 )
