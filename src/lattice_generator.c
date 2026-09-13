@@ -85,12 +85,11 @@ void generate_lattice(float lattice_vector[3][3],
     else if (spg <= 142)
         gen_tetragonal_lattice(lattice_vector, target_volume, norm_std);
 
-    else if (spg <= 167)
-        gen_hexagonal_lattice(lattice_vector, target_volume, norm_std);
-        //same as hexagonal?
-
+    // Trigonal (143-167) and hexagonal (168-194) both use the hexagonal
+    // setting: |a| = |b|, gamma = 120 degrees, c perpendicular to a and b.
     else if (spg <= 194)
         gen_hexagonal_lattice(lattice_vector, target_volume, norm_std);
+
     else if (spg <= 230)
         gen_cubic_lattice(lattice_vector, target_volume);
 
