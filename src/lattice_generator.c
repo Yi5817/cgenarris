@@ -199,17 +199,17 @@ void gen_hexagonal_lattice(float lattice_vector[3][3],
                            float norm_std)
 {
     float ax, by, cz;
-    gen_principal_comps(&ax, &by, &cz, target_volume, norm_std, TWO_EQUAL);
+    const float gamma = 120 * PI/180;
 
-    float gamma = 120 * PI/180;
-    by = ax * sin(gamma);
-    float bx = ax * cos(gamma);
+    // Cell volume is |a|*|b|*sin(gamma)*|c|
+    gen_principal_comps(&ax, &by, &cz, target_volume / sin(gamma),
+                        norm_std, TWO_EQUAL);
 
     set_lattice_vectors_zero(lattice_vector);
     lattice_vector[0][0] = ax;
-    lattice_vector[1][1] = by;
+    lattice_vector[1][0] = ax * cos(gamma);
+    lattice_vector[1][1] = ax * sin(gamma);
     lattice_vector[2][2] = cz;
-    lattice_vector[1][0] = bx;
 
     return;
 }
