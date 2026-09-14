@@ -1,0 +1,23 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Open MPI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_C_COMPILER=mpicc
+
+      - name: Build tests
+        run: cmake --build build -j --target cgenarris_test test_check_structure test_lattice_generator
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
