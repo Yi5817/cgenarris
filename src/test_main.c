@@ -80,17 +80,35 @@ int compare_geometry_out()
     FILE *fptr, *fptr_ref;
     fptr = fopen("geometry.out", "r");
     fptr_ref = fopen("geometry.out.test", "r");
+    if(!fptr || !fptr_ref)
+    {
+        printf("***ERROR: Cannot open geometry.out or geometry.out.test\n");
+        return FAIL;
+    }
 
+    int n = 0;
     while(read_geometry_out(fptr, &xtal))
     {
-        read_geometry_out(fptr_ref, &xtal_ref);
+        n++;
+        if(!read_geometry_out(fptr_ref, &xtal_ref))
+        {
+            printf("Test failed: generated more structures than reference\n");
+            return FAIL;
+        }
         int result = is_equal_xtal(&xtal, &xtal_ref, 0.001);
         if(result != 1)
         {
-            printf("Test failed!\n");
+            printf("Test failed: structure %d (spg %d) differs from reference\n",
+                   n, xtal.spg);
             return FAIL;
         }
     }
+    if(read_geometry_out(fptr_ref, &xtal_ref))
+    {
+        printf("Test failed: generated fewer structures than reference\n");
+        return FAIL;
+    }
+    printf("Compared %d structures with reference\n", n);
 
     fclose(fptr);
     fclose(fptr_ref);

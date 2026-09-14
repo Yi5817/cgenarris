@@ -60,9 +60,16 @@ add_executable(test_lattice_generator src/lattice_generator.c src/randomgen.c
 target_link_libraries(test_lattice_generator m)
 
 enable_testing()
+
+set(REGRESSION_DIR ${CMAKE_BINARY_DIR}/regression_test1)
+file(MAKE_DIRECTORY ${REGRESSION_DIR})
+configure_file(${PROJECT_SOURCE_DIR}/test/regression_test1/geometry.in
+               ${REGRESSION_DIR}/geometry.in COPYONLY)
+configure_file(${PROJECT_SOURCE_DIR}/test/regression_test1/geometry.out.test
+               ${REGRESSION_DIR}/geometry.out.test COPYONLY)
 add_test(NAME cgenarris_test
          COMMAND cgenarris_test
-         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/regression_test1/)
+         WORKING_DIRECTORY ${REGRESSION_DIR})
 
 # Bad-structure rejection test: a Z=4 overlapping structure produced when
 # the user requested Z=2. The vdw matrix is sized for Z=2, so the check
