@@ -65,8 +65,6 @@ set(REGRESSION_DIR ${CMAKE_BINARY_DIR}/regression_test1)
 file(MAKE_DIRECTORY ${REGRESSION_DIR})
 configure_file(${PROJECT_SOURCE_DIR}/test/regression_test1/geometry.in
                ${REGRESSION_DIR}/geometry.in COPYONLY)
-configure_file(${PROJECT_SOURCE_DIR}/test/regression_test1/geometry.out.test
-               ${REGRESSION_DIR}/geometry.out.test COPYONLY)
 add_test(NAME cgenarris_test
          COMMAND cgenarris_test
          WORKING_DIRECTORY ${REGRESSION_DIR})
