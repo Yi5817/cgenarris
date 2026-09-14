@@ -12,8 +12,8 @@
 ////////// MACROS AND DECLARATIONS //////////////////
 #define LOWB        3  //lower bound for length of lattice vector
 #define PI          3.141592653
-#define MAX_ANGLE   150 * PI / 180
-#define MIN_ANGLE   30 * PI / 180
+#define MAX_ANGLE   (150 * PI / 180)
+#define MIN_ANGLE   (30 * PI / 180)
 #define EPS         0.1
 enum COMP_TYPE {DISTINCT, TWO_EQUAL, ALL_EQUAL};
 
@@ -92,8 +92,6 @@ void generate_lattice(float lattice_vector[3][3],
 
     else if (spg <= 230)
         gen_cubic_lattice(lattice_vector, target_volume);
-
-    // standardise_lattice(lattice_vector, spg);
 
     return;
 }
@@ -286,75 +284,6 @@ void generate_fake_lattice(float lattice_vector[3][3], int spg)
         lattice_vector[1][1] = ax;
         lattice_vector[2][2] = ax;
     }
-}
-
-static inline float fmodulo(float n, float d)
-{
-    long q =n/d;
-    float r = n - q*d ;
-    return r;
-}
-
-void standardise_lattice( float lattice[3][3], int spg)
-{
-/*
-    double nlattice[9] = {lattice[0][0], lattice[0][1], lattice[0][2],
-                         lattice[1][0], lattice[1][1], lattice[1][2],
-                         lattice[2][0], lattice[2][1], lattice[2][2]
-                        };
-
-    int status = niggli_reduce(nlattice, 0.0001);
-
-    if(status)
-    {
-        lattice[0][0] = nlattice[0];
-        lattice[0][1] = nlattice[1];
-        lattice[0][2] = nlattice[2];
-
-        lattice[1][0] = nlattice[3];
-        lattice[1][1] = nlattice[4];
-        lattice[1][2] = nlattice[5];
-
-        lattice[2][0] = nlattice[6];
-        lattice[2][1] = nlattice[7];
-        lattice[2][2] = nlattice[8];
-    }
-*/
-    //triclinic
-    if (spg == 1 || spg == 2)
-    {
-        float by = lattice[1][1];
-        float cy = lattice[2][1];
-        float cx = lattice[2][0];
-        float bx = lattice[1][0];
-        long q = cy/by;
-        float cy_new = cy - q * by;
-        float cx_new = cx - q * bx;
-        lattice[2][1] = cy_new;
-        lattice[2][0] = cx_new;
-
-        bx = lattice[1][0];
-        float ax = lattice[0][0];
-        float bx_new = fmodulo (bx, ax);
-        lattice[1][0] = bx_new;
-
-        cx = lattice[2][0];
-        cx_new = fmodulo(cx, ax);
-        lattice[2][0] = cx_new;
-    }
-
-    else if (spg > 2 && spg < 16)
-    {
-        float ax = lattice[0][0];
-        float cx = lattice[2][0];
-        float cx_new = fmodulo(cx, ax);
-        lattice[2][0] = cx_new;
-
-    }
-
-    else if (spg <= 0 || spg > 230)
-        printf("***ERROR: lattice_generator: standardise_lattice invalid spg");
-
 }
 
 static float gen_angle(float angle_std)

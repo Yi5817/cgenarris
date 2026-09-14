@@ -34,7 +34,5 @@ void generate_lattice(float lattice_vector[3][3],
 
 void generate_fake_lattice(float lattice_vector[3][3], int spg);
 
-void standardise_lattice(float lattice[3][3], int spg);
-
 #endif
 
