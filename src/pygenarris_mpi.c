@@ -18,6 +18,10 @@
 #include "pygenarris_mpi.h"
 #include "pygenarris_mpi_utils.h"
 
+#ifndef CGENARRIS_VERSION
+#define CGENARRIS_VERSION "unknown"
+#endif
+
 #define ZMAX 192
 #define BATCH_SIZE 10000
 #define PI 3.141592653
@@ -145,6 +149,7 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
         int len = 100;
         char name[len];
         gethostname(name, len);
+        printf("cgenarris version %s\n", CGENARRIS_VERSION);
         printf("PARALLELIZATION INFO:\n");
         printf("---------------------------\n");
         printf("Using MPI for parallelization.\n");

@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION  3.10.2)
-project("cgenarris")
+# The VERSION file is the single source of truth; release tags mirror it.
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/VERSION CGENARRIS_VERSION)
+project("cgenarris" VERSION ${CGENARRIS_VERSION} LANGUAGES C)
+add_definitions(-DCGENARRIS_VERSION="${PROJECT_VERSION}")
 
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
