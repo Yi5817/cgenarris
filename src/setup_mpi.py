@@ -2,11 +2,16 @@
 setup.py file
 """
 
-from setuptools import setup, Extension
-from distutils import sysconfig
 import os
 
+from setuptools import setup, Extension
+from distutils import sysconfig
+
 mpicompiler = "mpicc"
+
+version_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "VERSION")
+with open(version_file) as f:
+    version = f.read().strip()
 
 # These flags may conflict with other compilers
 ccvars = sysconfig.get_config_vars()
@@ -94,15 +99,15 @@ pygenarris_mpi = Extension(
     ]
     + sources_spglib,
     extra_compile_args=["-std=gnu99", "-fPIC", "-O3"],
+    define_macros=[("CGENARRIS_VERSION", '"%s"' % version)],
 )
 
 setup(
     name="pygenarris_mpi",
-    version="1.0.0",
-    author="Rithwik Tom",
-    description="""email:rtom@andrew.cmu.edu""",
+    version=version,
+    author="Rithwik Tom, Yi Yang",
     maintainer="Yi Yang, Haoran Ni",
-    maintainer_email="yi.yang@andrew.cmu.edu",
+    maintainer_email="yiy5@andrew.cmu.edu",
     ext_modules=[pygenarris_mpi],
     py_modules=["pygenarris_mpi"],
 )
