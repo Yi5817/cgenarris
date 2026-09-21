@@ -2,7 +2,8 @@
 #define _INPUT_SETTINGS_H_
 
 //generation types
-#define CRYSTAL   1
+#define CRYSTAL 1
+#define LAYER   2
 
 typedef struct
 {

@@ -43,7 +43,11 @@ int main(int argc, char **argv)
     //variable declarartion
     molecule *mol = (molecule*)malloc(sizeof(molecule));//store molecule
     //////added here
-    char generation_type[25]; //indicate whether its molecular crystal generation
+    char generation_type[25]; //indicate whether its molecular crystal generation or layer generation
+    float interface_area_mean; //for layer
+    float interface_area_std; //for layer
+    int volume_multiplier; // for layer
+    float  lattice_vector_2d[2][3]; //for layer
     float volume_std;	//standard dev for volumes
     float volume_mean;	//mean volume
     float sr;			//specific radius proportion for structure checks
@@ -59,7 +63,7 @@ int main(int argc, char **argv)
     float norm_dev;
     float angle_std;
     int mol_types;  // No. of distinct molecule types
-    int *stoic;  // Stochiometry for the co-crystal. Array of length mol_types.
+    int *stoic;  // kept for compatibility with read_control()
 
     read_geometry(mol, "geometry.in");				//read molecule from geometry.in
     read_control(&num_structures,
@@ -114,6 +118,29 @@ int main(int argc, char **argv)
 
     }
 
+	else if(!strcmp(generation_type, "layer"))			// for layer generation
+	{
+	    mpi_generate_layer_with_vdw_cutoff_matrix(
+		vdw_cutoff_matrix,
+		dim_vdw_matrix,
+		dim_vdw_matrix,
+		num_structures,
+		Z,
+		volume_mean,
+		volume_std,
+		interface_area_mean,
+		interface_area_std,
+		volume_multiplier,
+		tol,
+		max_attempts,
+		spg_dist_type,
+		lattice_vector_2d,
+		vol_attempt,
+		random_seed,
+		world_comm);
+
+	}
+
     else
     {
         printf("***ERROR: generation type unsupported : %s\n", generation_type);
@@ -122,4 +149,3 @@ int main(int argc, char **argv)
     MPI_Finalize();
     return 0;
 }
-

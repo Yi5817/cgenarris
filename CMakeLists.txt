@@ -20,6 +20,9 @@ src/randomgen.c
 src/read_input.c
 src/spg_generation.c
 
+# Layer groups
+src/lattice_generator_layer.c
+
 # spglib sources
 src/spglib_src/arithmetic.c
 src/spglib_src/cell.c
@@ -82,4 +85,3 @@ set_tests_properties(check_structure_rejects_bad PROPERTIES WILL_FAIL TRUE)
 # Lattice generator: volume must equal the target and cell parameters must
 # obey the constraints of each crystal system.
 add_test(NAME lattice_generator COMMAND test_lattice_generator)
-
