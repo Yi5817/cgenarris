@@ -484,6 +484,7 @@ void combine_close_molecules(crystal* xtal)
     {
         if(partition_list[i/N] != -1)
             continue;
+        same = 0;
 
         float com1[3] = {0,0,0};
         compute_molecule_COM(*xtal, com1, i);
