@@ -43,6 +43,7 @@ void copy_intmat3b3_constintmat3b3bN(int a[3][3], int const b[][3][3], int index
 void copy_vector3bN_vector3(float a[3], float b[][3], int index); //added here
 void copy_doubvector3_vector3bN( double a[3], const double b[][3], int index);//added here
 void copy_doubvector3bN_vector3(double a[3], double b[][3], int index); //added here
+int get_lg_symmetry(int hall_number,double translations [192] [3],int rotations[192][3][3]);//added here
 
 int get_cell_type_from_spg(int spg);
 			

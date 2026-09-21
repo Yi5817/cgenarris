@@ -2,10 +2,16 @@
 setup.py file
 """
 
+import os
+
 from setuptools import setup, Extension
 from distutils import sysconfig
 
 mpicompiler = "mpicc"
+
+version_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "VERSION")
+with open(version_file) as f:
+    version = f.read().strip()
 
 # These flags may conflict with other compilers
 ccvars = sysconfig.get_config_vars()
@@ -74,7 +80,7 @@ for i, s in enumerate(sources_spglib):
 
 pygenarris_mpi = Extension(
     "_pygenarris_mpi",
-    include_dirs=[mpi4py.get_include(), numpy.get_include(), "./"],
+    include_dirs=[numpy.get_include(), mpi4py.get_include(), "./"],
     sources=[
         "pygenarris_mpi.i",
         "pygenarris_mpi.c",
@@ -88,6 +94,7 @@ pygenarris_mpi = Extension(
         "check_structure.c",
         "read_input.c",
         "randomgen.c",
+        "lattice_generator_layer.c",
         "pygenarris_mpi_utils.c",
         "asu_generation.c",
         "asu_utils.c",
@@ -98,13 +105,15 @@ pygenarris_mpi = Extension(
         "-I./",
         f"-I{mpi4py.get_include()}",
     ],
+    define_macros=[("CGENARRIS_VERSION", '"%s"' % version)],
 )
 
 setup(
     name="pygenarris_mpi",
-    version="2.0.0",
-    author="Yi Yang",
-    author_email="yiy5@andrew.cmu.edu",
+    version=version,
+    author="Rithwik Tom, Yi Yang",
+    maintainer="Yi Yang, Haoran Ni",
+    maintainer_email="yiy5@andrew.cmu.edu",
     ext_modules=[pygenarris_mpi],
     py_modules=["pygenarris_mpi"],
 )

@@ -11,6 +11,13 @@ void find_compatible_spg_positions(molecule *mol, int Z,
  COMPATIBLE_SPG compatible_spg[], int *num_compatible_spg,
  int thread_num);
 
+ void find_compatible_lg_positions(molecule *mol,
+				   int Z,
+				   COMPATIBLE_SPG compatible_spg[],
+				   int *num_compatible_spg,
+				   float lattice_vector_2d [2][3],float volume,
+				   int thread_num);
+
 void find_farthest_equivalent_atoms(molecule *mol,int atom_index[],\
                                         int* len_atom_index);
 
@@ -25,6 +32,16 @@ int check_pos_compatibility_using_std_orientations(crystal* xtal_1,
                               float first_com[3],
                               int overlap_list[],
                               int len_overlap_list);
+
+int lg_check_pos_compatibility_using_std_orientations(crystal* xtal_1,	
+						      COMPATIBLE_AXES *comp_axes,
+						      molecule* mol,		
+						      int hall_number,		
+						      float *mol_axes,	
+						      int num_axes,	
+						      float first_com[3],
+						      int overlap_list[],
+						      int len_overlap_list);
 
 int check_overlap_xtal(crystal* xtal,
                        int overlap_list[],

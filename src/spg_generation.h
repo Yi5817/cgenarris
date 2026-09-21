@@ -41,6 +41,14 @@ int generate_crystal(crystal* random_crystal, molecule* mol,float volume,
     int len_compatible_spg, int compatible_spg_index,
     float norm_dev, float angle_std);
 
+int generate_layer_crystal(crystal* random_crystal, molecule* mol,float volume,
+	float Z, float Zp_max, int spg, COMPATIBLE_SPG compatible_spg[],
+	int len_compatible_spg, int compatible_spg_index, float lattice_vector_2d[2][3],int *all_substrate_combo,
+	int num_combo,float interface_area_mean,float interface_area_std,int volume_multiplier,int SET_INTERFACE_AREA);
+
 int find_num_structure_for_spg(int num_structures, char spg_dist_type[10], int spg, int Z);
+
+int find_num_structure_for_lg(int num_structures, char spg_dist_type[10], int spg, int Z);
+
 
 #endif
