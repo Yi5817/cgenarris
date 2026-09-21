@@ -556,7 +556,7 @@ void combine_close_molecules(crystal* xtal)
                 tempx[molecule_counter*N + z] = xtal->Xcord[i+z];
                 tempy[molecule_counter*N + z] = xtal->Ycord[i+z];
                 tempz[molecule_counter*N + z] = xtal->Zcord[i+z];
-                tempatom[molecule_counter*N +z] = xtal->atoms[i+z];
+                tempatom[2*(molecule_counter*N +z)] = xtal->atoms[2*(i+z)];
                 tempatom[2*(molecule_counter*N +z)+1] = xtal->atoms[2*(i+z)+1];
             }
         }
