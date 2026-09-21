@@ -24,7 +24,6 @@ int detect_spg_using_spglib(crystal* xtal);
 void allocate_xtal(crystal* xtal, int Z, int N);
 void free_xtal(crystal* xtal);
 void copy_xtal(crystal* xtal1, crystal* xtal2);
-int is_equal_xtal(crystal* xtal1, crystal* xtal2, float ftol);
 
 void debug_symmetry_overlap(crystal *xtal, crystal *overlap, int spg);
 

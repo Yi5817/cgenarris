@@ -721,35 +721,3 @@ void copy_xtal(crystal* xtal1, crystal* xtal2)
     }
 
 }
-
-int is_equal_xtal(crystal* xtal1, crystal* xtal2, float ftol)
-{
-
-    if(xtal1->Z != xtal2->Z)
-        return 0;
-
-    if(xtal1->num_atoms_in_molecule !=  xtal2->num_atoms_in_molecule)
-        return 0;
-
-    for(int i = 0; i < 3; i++)
-        for(int j = 0; j < 3; j++)
-        {
-            int result = are_equal_floats(xtal1->lattice_vectors[i][j],
-                                          xtal2->lattice_vectors[i][j],
-                                          ftol);
-            if(!result)
-                return 0;
-        }
-
-    int total_atoms = xtal1->num_atoms_in_molecule * xtal1->Z;
-    for(int i = 0; i < total_atoms; i++)
-    {
-        int result = are_equal_floats(xtal1->Xcord[i], xtal2->Xcord[i], ftol);
-        result += are_equal_floats(xtal1->Ycord[i], xtal2->Ycord[i], ftol);
-        result += are_equal_floats(xtal1->Zcord[i], xtal2->Zcord[i], ftol);
-        if(result != 3)
-            return 0;
-    }
-
-    return 1;
-}

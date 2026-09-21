@@ -55,11 +55,19 @@ target_link_libraries(cgenarris_test m)
 target_link_libraries(cgenarris_test ${MPI_LIBRARIES})
 target_link_libraries(test_check_structure m)
 target_link_libraries(test_check_structure ${MPI_LIBRARIES})
+add_executable(test_lattice_generator src/lattice_generator.c src/randomgen.c
+               src/test_lattice_generator.c)
+target_link_libraries(test_lattice_generator m)
 
 enable_testing()
+
+set(REGRESSION_DIR ${CMAKE_BINARY_DIR}/regression_test1)
+file(MAKE_DIRECTORY ${REGRESSION_DIR})
+configure_file(${PROJECT_SOURCE_DIR}/test/regression_test1/geometry.in
+               ${REGRESSION_DIR}/geometry.in COPYONLY)
 add_test(NAME cgenarris_test
          COMMAND cgenarris_test
-         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test/regression_test1/)
+         WORKING_DIRECTORY ${REGRESSION_DIR})
 
 # Bad-structure rejection test: a Z=4 overlapping structure produced when
 # the user requested Z=2. The vdw matrix is sized for Z=2, so the check
@@ -70,4 +78,8 @@ add_test(NAME check_structure_rejects_bad
             ${PROJECT_SOURCE_DIR}/test/check_structure_test/cutoff_matrix.txt
             ${PROJECT_SOURCE_DIR}/test/check_structure_test/geometry.out)
 set_tests_properties(check_structure_rejects_bad PROPERTIES WILL_FAIL TRUE)
+
+# Lattice generator: volume must equal the target and cell parameters must
+# obey the constraints of each crystal system.
+add_test(NAME lattice_generator COMMAND test_lattice_generator)
 
