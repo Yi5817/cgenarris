@@ -66,6 +66,9 @@ target_link_libraries(test_check_structure ${MPI_LIBRARIES})
 add_executable(test_lattice_generator src/lattice_generator.c src/randomgen.c
                src/test_lattice_generator.c)
 target_link_libraries(test_lattice_generator m)
+add_executable(test_asu ${SOURCES} src/test_asu.c)
+target_link_libraries(test_asu m)
+target_link_libraries(test_asu ${MPI_LIBRARIES})
 
 enable_testing()
 
@@ -90,3 +93,20 @@ set_tests_properties(check_structure_rejects_bad PROPERTIES WILL_FAIL TRUE)
 # Lattice generator: volume must equal the target and cell parameters must
 # obey the constraints of each crystal system.
 add_test(NAME lattice_generator COMMAND test_lattice_generator)
+
+# Asymmetric units: unit checks plus an end-to-end run on the two JESMOK
+# components; also exercises the control.in-driven executable.
+set(ASU_TEST_DIR ${CMAKE_BINARY_DIR}/asu_test)
+file(MAKE_DIRECTORY ${ASU_TEST_DIR})
+foreach(f geometry_0.in geometry_1.in control.in)
+    configure_file(${PROJECT_SOURCE_DIR}/test/asu_test/${f}
+                   ${ASU_TEST_DIR}/${f} COPYONLY)
+endforeach()
+add_test(NAME asu_generation
+         COMMAND test_asu
+         WORKING_DIRECTORY ${ASU_TEST_DIR})
+add_test(NAME cgenarris_asu_executable
+         COMMAND ${PROJECT_NAME}
+         WORKING_DIRECTORY ${ASU_TEST_DIR})
+set_tests_properties(cgenarris_asu_executable PROPERTIES
+                     PASS_REGULAR_EXPRESSION "Generated 20/20 asymmetric units")

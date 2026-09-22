@@ -25,10 +25,8 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_C_COMPILER=mpicc
 
-      # The cgenarris product target does not compile yet (cgenarris_mpi.c),
-      # so only the test executables are built here.
-      - name: Build tests
-        run: cmake --build build -j --target cgenarris_test test_check_structure test_lattice_generator
+      - name: Build
+        run: cmake --build build -j
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
