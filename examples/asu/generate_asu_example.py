@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import os
 import sys
+from io import StringIO
 
 import ase.io
 import numpy as np
 from ase import Atoms
+from ase.io.aims import read_aims
 from mpi4py import MPI
 
 # Make the in-place-built extension importable from this directory.
@@ -37,43 +39,38 @@ def molecules_to_arrays(molecules: list[Atoms]) -> tuple[np.ndarray, str, np.nda
     return np.ascontiguousarray(positions), species, n_atoms_per_mol
 
 
+def _parse_info_value(values: list[str]) -> int | float | str | np.ndarray:
+    """
+    Parse the value tokens of a "#key = value..." line: int, int array, float or str.
+    """
+    try:
+        parsed = [int(v) for v in values]
+        return parsed[0] if len(parsed) == 1 else np.array(parsed)
+    except ValueError:
+        pass
+    try:
+        return float(values[0])
+    except ValueError:
+        return " ".join(values)
+
+
 def read_geometry_out(path: str) -> list[Atoms]:
     """
     Read a cgenarris output file (crystals or asymmetric units) into ASE Atoms.
 
-    Each "####### BEGIN/END STRUCTURE #######" block becomes one Atoms object.
-    "#key = value" lines land in Atoms.info (ints, floats, or int lists);
-    blocks without lattice_vector lines are non-periodic.
+    Each "####### BEGIN/END STRUCTURE #######" block is parsed by ASE's FHI-aims
+    reader (non-periodic when it has no lattice_vector lines); "#key = value"
+    lines land in Atoms.info as ints, floats, int arrays or strings.
     """
-    structures: list[Atoms] = []
     with open(path) as f:
         blocks = f.read().split("#######  END  STRUCTURE #######")[:-1]
+    structures: list[Atoms] = []
     for block in blocks:
-        symbols, positions, cell, info = [], [], [], {}
+        atoms = read_aims(StringIO(block))
         for line in block.splitlines():
             parts = line.split()
-            if not parts or parts[0].startswith("#######"):
-                continue
-            if parts[0] == "atom":
-                positions.append([float(v) for v in parts[1:4]])
-                symbols.append(parts[4])
-            elif parts[0] == "lattice_vector":
-                cell.append([float(v) for v in parts[1:4]])
-            elif parts[0].startswith("#") and len(parts) > 2 and parts[1] == "=":
-                values = parts[2:]
-                try:
-                    parsed = [int(v) for v in values]
-                    info[parts[0][1:]] = parsed[0] if len(parsed) == 1 else np.array(parsed)
-                except ValueError:
-                    try:
-                        info[parts[0][1:]] = float(values[0])
-                    except ValueError:
-                        info[parts[0][1:]] = " ".join(values)
-        atoms = Atoms(symbols=symbols, positions=positions)
-        if cell:
-            atoms.set_cell(cell)
-            atoms.set_pbc(True)
-        atoms.info.update(info)
+            if len(parts) > 2 and parts[0].startswith("#") and parts[1] == "=":
+                atoms.info[parts[0][1:]] = _parse_info_value(parts[2:])
         structures.append(atoms)
     return structures
 
@@ -85,7 +82,7 @@ def main() -> None:
     comm = MPI.COMM_WORLD
 
     molecules = [ase.io.read(os.path.join(_HERE, "molecule.xyz"))]  # one type ...
-    stoichiometry = np.array([2], dtype=np.int32)                   # ... taken twice -> dimer
+    stoichiometry = np.array([2], dtype=np.int32)  # ... taken twice -> dimer
 
     run_dir = os.path.join(_HERE, "run")
     if comm.rank == 0:
