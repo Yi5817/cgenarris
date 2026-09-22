@@ -28,7 +28,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "python")))
 sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "examples", "asu")))
 
 import pygenarris_mpi as pg_mpi  # noqa: E402
-
 from generate_asu_example import molecules_to_arrays, read_geometry_out  # noqa: E402
 
 SR_MIN, SR_MAX = 0.75, 1.30
@@ -71,8 +70,10 @@ def test_crystal_round_trip(run_dir, comm, monkeypatch):
     z, volume_mean, volume_std, sr = 2, 600.0, 40.0, 0.85
 
     # Pairwise cutoff sr * (r_i + r_j) for z copies of the molecule.
-    radii = np.tile([vdw_radii[atomic_numbers[s]] for s in mol.get_chemical_symbols()], z)
-    cutoff = np.ascontiguousarray(sr * (radii[:, None] + radii[None, :]), dtype=np.float32)
+    symbols = mol.get_chemical_symbols()
+    radii = np.tile([vdw_radii[atomic_numbers[s]] for s in symbols], z)
+    cutoff = sr * (radii[:, None] + radii[None, :])
+    cutoff = np.ascontiguousarray(cutoff, dtype=np.float32)
 
     pg_mpi.mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
         cutoff,
@@ -152,7 +153,9 @@ def test_asu_round_trip_two_components(molecules, run_dir, comm):
         np.testing.assert_array_equal(unit.info["stoichiometry"], [1, 1])
         np.testing.assert_array_equal(unit.info["molecule_types"], [0, 1])
         np.testing.assert_array_equal(unit.info["molecule_index"], [0, n0])
-        np.testing.assert_array_equal(unit.info["number_of_atoms_in_molecule_type"], [n0, n1])
+        np.testing.assert_array_equal(
+            unit.info["number_of_atoms_in_molecule_type"], [n0, n1]
+        )
         assert unit.get_chemical_symbols() == (
             molecules[0].get_chemical_symbols() + molecules[1].get_chemical_symbols()
         )
@@ -180,7 +183,9 @@ def test_asu_seed_reproducibility(molecules, run_dir, comm):
     output_file = os.path.join(run_dir, "asu.out")
     runs = []
     for _ in range(2):
-        _generate_asus(molecules, [1, 1], output_file, comm, num_structures=6, random_seed=3)
+        _generate_asus(
+            molecules, [1, 1], output_file, comm, num_structures=6, random_seed=3
+        )
         comm.Barrier()
         runs.append(read_geometry_out(output_file))
         comm.Barrier()
@@ -190,7 +195,10 @@ def test_asu_seed_reproducibility(molecules, run_dir, comm):
 
 def test_asu_invalid_input_returns_minus_one(molecules, run_dir, comm):
     output_file = os.path.join(run_dir, "asu.out")
-    assert _generate_asus(molecules, [1, 1], output_file, comm, sr_min=1.3, sr_max=0.75) == -1
+    assert (
+        _generate_asus(molecules, [1, 1], output_file, comm, sr_min=1.3, sr_max=0.75)
+        == -1
+    )
     assert _generate_asus(molecules, [1, 1], output_file, comm, max_attempts=0) == -1
     assert _generate_asus(molecules, [1], output_file, comm) == -1  # too short
     assert _generate_asus(molecules, [0, 1], output_file, comm) == -1
@@ -212,7 +220,8 @@ def test_asu_bad_array_shapes_raise(molecules, run_dir, comm):
             positions, species, n_atoms_per_mol.astype(np.float64), stoic,
             N_ASU, SR_MIN, SR_MAX, 1000, 1, output_file, comm,
         )
-    # Inconsistent species length or atom counts are caught in C, not read out of bounds.
+    # Inconsistent species length or atom counts are caught in C rather than
+    # read out of bounds.
     assert pg_mpi.generate_asymmetric_units(
         positions, species[:-2], n_atoms_per_mol, stoic,
         N_ASU, SR_MIN, SR_MAX, 1000, 1, output_file, comm,
