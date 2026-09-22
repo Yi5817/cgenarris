@@ -61,8 +61,13 @@ void create_vdw_matrix_from_sr( molecule *mol,
 								float sr,
 								int Z);
 
+// Looks up the van der Waals radius of a species given as two
+// chars, space padded ("C ", "Cl"). Returns 0 and sets *radius, or -1 if
+// the species is not in the table. Never exits; use at API boundaries.
+int atom_vdw_radius(char c0, char c1, float *radius);
+
 // Fills atom_vdw with the van der Waals radius of each atom,
-// where atom holds two chars per atom. Shared by crystal and ASU checks.
+// where atom holds two chars per atom. Exits on an unknown species.
 void convert_atom2atom_vdw(char *atom, float *atom_vdw, int num_atoms);
 
 

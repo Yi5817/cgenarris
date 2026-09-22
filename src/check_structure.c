@@ -198,42 +198,34 @@ int structure_checker(crystal *xtal,
  * uses Bondii radii. If you need to add/change vdw radii of an atom
  * to the database, do it here.
  */
+int atom_vdw_radius(char c0, char c1, float *radius)
+{
+    if      (c0 == 'C' && c1 == ' ') *radius = 1.7;
+    else if (c0 == 'H' && c1 == ' ') *radius = 1.1;
+    else if (c0 == 'N' && c1 == ' ') *radius = 1.55;
+    else if (c0 == 'O' && c1 == ' ') *radius = 1.52;
+    else if (c0 == 'F' && c1 == ' ') *radius = 1.47;
+    else if (c0 == 'P' && c1 == ' ') *radius = 1.8;
+    else if (c0 == 'S' && c1 == ' ') *radius = 1.8;
+    else if (c0 == 'C' && c1 == 'l') *radius = 1.75;
+    else if (c0 == 'B' && c1 == 'r') *radius = 1.85;
+    else if (c0 == 'I' && c1 == ' ') *radius = 1.98;
+    else if (c0 == 'B' && c1 == ' ') *radius = 1.92;
+    else if (c0 == 'H' && c1 == 'e') *radius = 1.40;
+    else if (c0 == 'N' && c1 == 'e') *radius = 1.54;
+    else if (c0 == 'K' && c1 == 'r') *radius = 2.02;
+    else if (c0 == 'S' && c1 == 'i') *radius = 2.10;
+    else
+        return -1;
+    return 0;
+}
+
 void convert_atom2atom_vdw(char *atom,float *atom_vdw, int num_atoms)
 {
 
     for (int i = 0; i < num_atoms; i++)
     {
-        if      (atom[2*i] == 'C' && atom[2*i+1] == ' ')
-        atom_vdw[i]=1.7;
-        else if (atom[2*i] == 'H' && atom[2*i+1] == ' ')
-        atom_vdw[i]=1.1;
-        else if (atom[2*i] == 'N' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.55 ;
-        else if (atom[2*i] == 'O' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.52;
-        else if (atom[2*i] == 'F' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.47;
-        else if (atom[2*i] == 'P' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.8;
-        else if (atom[2*i] == 'S' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.8;
-        else if (atom[2*i] == 'C' && atom[2*i+1] == 'l')
-        atom_vdw[i] = 1.75;
-        else if (atom[2*i] == 'B' && atom[2*i+1] == 'r')
-        atom_vdw[i] = 1.85;
-        else if (atom[2*i] == 'I' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.98;
-        else if (atom[2*i] == 'B' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.92;
-        else if (atom[2*i] == 'H' && atom[2*i+1] == 'e')
-        atom_vdw[i] = 1.40;
-        else if (atom[2*i] == 'N' && atom[2*i+1] == 'e')
-        atom_vdw[i] = 1.54;
-        else if (atom[2*i] == 'K' && atom[2*i+1] == 'r')
-        atom_vdw[i] = 2.02;
-        else if (atom[2*i] == 'S' && atom[2*i+1] == 'i')
-        atom_vdw[i] = 2.10;
-        else
+        if(atom_vdw_radius(atom[2*i], atom[2*i+1], atom_vdw + i))
         {
             printf("***ERROR: atom2atom_vdw: atom not found -> %c%c\n",\
                     atom[2*i], atom[2*i+1]);

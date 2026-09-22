@@ -1,225 +1,155 @@
+#include "asu_generation.h"
 #include "asu_utils.h"
 #include "asu.h"
-#include "asu_generation.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <limits.h>
+#include <time.h>
 #include "mpi.h"
 #include "algebra.h"
 #include "molecule.h"
 #include "molecule_utils.h"
 #include "randomgen.h"
-#include "check_structure.h"   // convert_atom2atom_vdw, find_mol_len
+#include "check_structure.h"   // find_mol_len
 
-int asu_try_one_random_place(asu *unit, float box[3][3], molecule *mol)
+#define ASU_PATH_MAX 4096
+
+float asu_box_length(const molecule *mol, const int *stoic, int n_mol_types)
 {
-       float random_rot[3][3];
-       float random_trans[3];
-       float inv_lat_vec[3][3];
-       float lat_vec_trans[3][3];
-
-       inverse_mat3b3(inv_lat_vec, box);
-       mat3b3_transpose(inv_lat_vec, inv_lat_vec);
-       mat3b3_transpose(lat_vec_trans, box);
-
-       int at = 0;
-       for(int m = 0; m < unit->n_mol_types; m++)
-       {
-              for(int st = 0; st < unit->stoic[m]; st++)
-              {
-                     generate_random_rotation_matrix(random_rot);
-                     generate_random_translation_vector(random_trans);
-
-                     for(int mat = 0; mat < unit->n_atoms_in_mol[m]; mat++)
-                     {
-                            float atom[3] = {mol[m].X[mat], mol[m].Y[mat], mol[m].Z[mat]};
-                            vector3_mat3b3_multiply(random_rot, atom, atom);
-
-                            // Convert to fractional and translate
-                            vector3_mat3b3_multiply(inv_lat_vec, atom, atom);
-                            vector3_add(atom, random_trans, atom);
-
-                            vector3_mat3b3_multiply(lat_vec_trans, atom, atom);
-                            unit->Xcord[at] = atom[0];
-                            unit->Ycord[at] = atom[1];
-                            unit->Zcord[at] = atom[2];
-                            unit->atoms[2*at] = mol[m].atoms[2*mat];
-                            unit->atoms[2*at + 1] = mol[m].atoms[2*mat + 1];
-                            at++;
-                     }
-              }
-       }
-       return 1;
+    float volume = 0;
+    for(int m = 0; m < n_mol_types; m++)
+    {
+        float d = find_mol_len(mol[m].X, mol[m].Y, mol[m].Z, mol[m].num_of_atoms);
+        volume += d * d * d * stoic[m];
+    }
+    return cbrtf(3.0f * volume);
 }
 
-float cal_asu_two_mol_sr(asu *unit, int ith_mol, int jth_mol, float *atoms_vdw)
+void asu_place_random(asu *unit, const molecule *mol, float box_len)
 {
-      int index_i = unit->mol_index[ith_mol];
-      int index_j = unit->mol_index[jth_mol];
-      float sr = 1000000.0;
-      float temp = 0.0;
-      float dx, dy, dz;
-      for(int i = 0; i < unit->n_atoms_in_mol[unit->mol_types[ith_mol]]; i++)
-      {
-              for(int j = 0; j < unit->n_atoms_in_mol[unit->mol_types[jth_mol]]; j++)
-              {
-                     dx = unit->Xcord[index_i + i] - unit->Xcord[index_j + j];
-                     dy = unit->Ycord[index_i + i] - unit->Ycord[index_j + j];
-                     dz = unit->Zcord[index_i + i] - unit->Zcord[index_j + j];
-                     temp = sqrt(dx * dx + dy * dy + dz * dz) / (atoms_vdw[index_i + i] + (atoms_vdw[index_j + j]));
-                     if (temp < sr)
-                     {
-                         sr = temp;
-                     }
-              }
+    float rot[3][3];
+    float trans[3];
 
-      }
-      return sr;
+    for(int k = 0; k < unit->n_mols; k++)
+    {
+        const molecule *m = mol + unit->mol_types[k];
+        int first = unit->mol_index[k];
+
+        generate_random_rotation_matrix(rot);
+        generate_random_translation_vector(trans);   // fractional, in [0, 1)
+
+        for(int a = 0; a < m->num_of_atoms; a++)
+        {
+            float atom[3] = {m->X[a], m->Y[a], m->Z[a]};
+            vector3_mat3b3_multiply(rot, atom, atom);
+            unit->Xcord[first + a] = atom[0] + box_len * trans[0];
+            unit->Ycord[first + a] = atom[1] + box_len * trans[1];
+            unit->Zcord[first + a] = atom[2] + box_len * trans[2];
+        }
+    }
 }
 
-// Smallest specific radius (min interatomic distance / vdW-radius sum) over
-// all molecule pairs. Used to reject overlapping placements. Requires >= 2
-// molecules; with a single molecule there is no pair and sr stays "infinite".
-float cal_asu_sr(asu *unit)
+float asu_min_sr(const asu *unit)
 {
-       float atoms_vdw[unit->n_atoms];
-       float sr = 1000000.0;
-       float temp = 0;
-       convert_atom2atom_vdw(unit->atoms, atoms_vdw, unit->n_atoms);
+    float min_ratio_sq = HUGE_VALF;   // (d_ij / (r_i + r_j))^2; n_mols >= 2
 
-       for(int i = 0; i < unit->n_mols - 1; i++){
-
-              for(int j = i + 1; j < unit->n_mols; j++)
-              {
-                     temp = cal_asu_two_mol_sr(unit, i, j, atoms_vdw);
-                     if (temp < sr)
-                     {
-                            sr = temp;
-                     }
-
-              }
-       }
-       return sr;
-
+    for(int p = 0; p < unit->n_mols - 1; p++)
+    {
+        int p0 = unit->mol_index[p];
+        int p1 = p0 + unit->n_atoms_in_mol[unit->mol_types[p]];
+        for(int q = p + 1; q < unit->n_mols; q++)
+        {
+            int q0 = unit->mol_index[q];
+            int q1 = q0 + unit->n_atoms_in_mol[unit->mol_types[q]];
+            for(int i = p0; i < p1; i++)
+            {
+                for(int j = q0; j < q1; j++)
+                {
+                    float dx = unit->Xcord[i] - unit->Xcord[j];
+                    float dy = unit->Ycord[i] - unit->Ycord[j];
+                    float dz = unit->Zcord[i] - unit->Zcord[j];
+                    float rsum = unit->vdw_radii[i] + unit->vdw_radii[j];
+                    float ratio_sq = (dx * dx + dy * dy + dz * dz) / (rsum * rsum);
+                    if(ratio_sq < min_ratio_sq)
+                        min_ratio_sq = ratio_sq;
+                }
+            }
+        }
+    }
+    return sqrtf(min_ratio_sq);
 }
 
-void estimate_box(float box[3][3], int *stoic, molecule *mol, int mol_types){
-
-     float mol_length;
-     float estimate_vol = 0;
-     float a;
-     for(int i = 0; i < mol_types; i++)
-     {
-         mol_length = find_mol_len(mol[i].X, mol[i].Y, mol[i].Z, mol[i].num_of_atoms);
-         estimate_vol += mol_length * mol_length * mol_length * stoic[i];
-
-     }
-
-     estimate_vol = estimate_vol * 1.5 * 2;
-     a = cbrt(estimate_vol);
-     box[0][0] = a;
-     box[1][1] = a;
-     box[2][2] = a;
-
-     box[0][1] = 0;
-     box[0][2] = 0;
-     box[1][2] = 0;
-
-     box[1][0] = 0;
-     box[2][0] = 0;
-     box[2][1] = 0;
-}
-
-int generate_one_asu(asu *unit, molecule *mol, float sr_min, float sr_max, int max_attempts)
-// *unit is an initialized asymmetric unit
+long asu_generate_one(asu *unit, const molecule *mol, float box_len,
+                      float sr_min, float sr_max, long max_attempts)
 {
-       float box[3][3];
-       float sr;
-
-       estimate_box(box, unit->stoic, mol, unit->n_mol_types);
-
-       for(int i = 0; i < max_attempts; i++){
-              asu_try_one_random_place(unit, box, mol);
-              sr = cal_asu_sr(unit);
-
-              if ((sr > sr_min) && (sr < sr_max)){
-                     unit->sr = sr;
-                     return i + 1;
-              }
-
-       }
-
-       return 0;
-
+    for(long attempt = 1; attempt <= max_attempts; attempt++)
+    {
+        asu_place_random(unit, mol, box_len);
+        float sr = asu_min_sr(unit);
+        if(sr > sr_min && sr < sr_max)
+        {
+            unit->sr = sr;
+            asu_recenter(unit);
+            return attempt;
+        }
+    }
+    return 0;
 }
 
 /*
-Serial worker: generates up to num_asu asymmetric units and writes them
-as extended-XYZ blocks to out_path (truncated first). Returns the number
-of asymmetric units actually generated.
+Serial worker: generates up to num_asu asymmetric units and writes them as
+geometry.out blocks numbered from first_number to out_path (truncated
+first). Returns the number of units written (or -1 if the file cannot be
+created) and adds the number of placements tried to *attempts.
 */
-static int generate_asu_to_file(
-    const char *out_path,
-    molecule *mol,
-    float sr_min,
-    float sr_max,
-    int *stoic,
-    int n_mol_types,
-    int num_asu,
-    long max_attempts)
+static int generate_to_file(const char *out_path, asu *unit, const molecule *mol,
+                            float box_len, float sr_min, float sr_max,
+                            int num_asu, int first_number, long max_attempts,
+                            long *attempts)
 {
-    int *n_atoms_in_mol = (int *)malloc(n_mol_types * sizeof(int));
-    for(int i = 0; i < n_mol_types; i++)
-        n_atoms_in_mol[i] = mol[i].num_of_atoms;
-
-    asu unit;
-    asu_init(&unit, stoic, n_atoms_in_mol, n_mol_types);
-
     FILE *out = fopen(out_path, "w");
     if(!out)
     {
-        printf("***ERROR: cannot create %s\n", out_path);
-        asu_free(&unit);
-        free(n_atoms_in_mol);
-        return 0;
+        fprintf(stderr, "***ERROR: asu_generate_mpi: cannot create %s\n", out_path);
+        return -1;
     }
 
-    long remain_attempts = max_attempts;
-    int num_generated = 0;
-
-    while(remain_attempts > 0 && num_generated < num_asu)
+    int n_written = 0;
+    while(n_written < num_asu)
     {
-        int budget = remain_attempts > INT_MAX ? INT_MAX : (int)remain_attempts;
-        int used = generate_one_asu(&unit, mol, sr_min, sr_max, budget);
-        if(used == 0)   // exhausted attempts without a valid placement
+        long used = asu_generate_one(unit, mol, box_len, sr_min, sr_max, max_attempts);
+        if(used == 0)
+        {
+            *attempts += max_attempts;
+            fprintf(stderr, "**WARNING: no asymmetric unit found within "
+                    "%ld attempts; stopping after %d\n", max_attempts, n_written);
             break;
-        remain_attempts -= used;
-        num_generated++;
-        write_asu_extxyz(&unit, out, num_generated);
+        }
+        *attempts += used;
+        n_written++;
+        asu_write_block(unit, out, first_number + n_written - 1);
     }
 
     fclose(out);
-    asu_free(&unit);
-    free(n_atoms_in_mol);
-    return num_generated;
+    return n_written;
 }
 
 /*
 Concatenates the per-rank shard files "<output_file>.rank<r>" into
 output_file (in rank order) and deletes each shard afterwards.
+Returns 0 on success, -1 if output_file cannot be created.
 */
-static void merge_shard_files(const char *output_file, int total_ranks)
+static int merge_shard_files(const char *output_file, int total_ranks)
 {
     FILE *out = fopen(output_file, "w");
     if(!out)
     {
-        printf("***ERROR: cannot create %s\n", output_file);
-        return;
+        fprintf(stderr, "***ERROR: asu_generate_mpi: cannot create %s\n", output_file);
+        return -1;
     }
 
-    char shard_path[600];
+    char shard_path[ASU_PATH_MAX];
     char buffer[8192];
     for(int r = 0; r < total_ranks; r++)
     {
@@ -234,6 +164,127 @@ static void merge_shard_files(const char *output_file, int total_ranks)
         remove(shard_path);
     }
     fclose(out);
+    return 0;
+}
+
+// Validates the user-facing arguments; prints on rank 0 only.
+static int check_arguments(int my_rank, int n_mol_types, int num_structures,
+                           double sr_min, double sr_max, long max_attempts,
+                           const char *output_file)
+{
+    const char *problem = NULL;
+    if(n_mol_types < 1)
+        problem = "n_mol_types must be >= 1";
+    else if(num_structures < 0)
+        problem = "num_structures must be >= 0";
+    else if(!(sr_min >= 0 && sr_min < sr_max))
+        problem = "sr window must satisfy 0 <= sr_min < sr_max";
+    else if(max_attempts < 1)
+        problem = "max_attempts must be >= 1";
+    else if(!output_file || output_file[0] == '\0')
+        problem = "output_file must not be empty";
+    else if(strlen(output_file) + 16 > ASU_PATH_MAX)
+        problem = "output_file path is too long";
+
+    if(problem)
+    {
+        if(my_rank == 0)
+            fprintf(stderr, "***ERROR: asu_generate_mpi: %s\n", problem);
+        return -1;
+    }
+    return 0;
+}
+
+int asu_generate_mpi(molecule *mol, int n_mol_types, const int *stoichiometry,
+                     int num_structures, double sr_min, double sr_max,
+                     long max_attempts, int random_seed,
+                     const char *output_file, MPI_Comm comm)
+{
+    int total_ranks, my_rank;
+    MPI_Comm_size(comm, &total_ranks);
+    MPI_Comm_rank(comm, &my_rank);
+
+    if(check_arguments(my_rank, n_mol_types, num_structures, sr_min, sr_max,
+                       max_attempts, output_file))
+        return -1;
+
+    asu unit;
+    if(asu_init(&unit, mol, stoichiometry, n_mol_types))
+        return -1;
+
+    for(int m = 0; m < n_mol_types; m++)
+        recenter_molecule(mol + m);
+    float box_len = asu_box_length(mol, stoichiometry, n_mol_types);
+
+    // Seed the Mersenne Twister per rank so each draws an independent stream.
+    if(random_seed == 0)
+    {
+        if(my_rank == 0)
+            random_seed = (int)(time(NULL) % 1000000000L) + 1;
+        MPI_Bcast(&random_seed, 1, MPI_INT, 0, comm);
+    }
+    init_genrand((unsigned int)(random_seed + my_rank));
+
+    if(my_rank == 0)
+    {
+        printf("ASYMMETRIC UNIT GENERATION:\n");
+        printf("-----------------------------\n");
+        printf("Molecule types:                %d\n", n_mol_types);
+        printf("Stoichiometry:                 ");
+        for(int m = 0; m < n_mol_types; m++)
+            printf("%d%s", stoichiometry[m], m + 1 < n_mol_types ? ":" : "\n");
+        printf("Atoms per asymmetric unit:     %d\n", unit.n_atoms);
+        printf("Placement box edge (Angstrom): %.3f\n", box_len);
+        printf("sr window:                     (%.3f, %.3f)\n", sr_min, sr_max);
+        printf("Max attempts per unit:         %ld\n", max_attempts);
+        printf("Random seed:                   %d\n", random_seed);
+        printf("Requested units:               %d on %d ranks\n",
+               num_structures, total_ranks);
+        printf("-----------------------------\n");
+        fflush(stdout);
+    }
+
+    // Split the requested count across ranks; low ranks absorb the remainder.
+    // Units are numbered consecutively across ranks in the merged file.
+    int base = num_structures / total_ranks;
+    int rem = num_structures % total_ranks;
+    int my_share = base + (my_rank < rem ? 1 : 0);
+    int my_first_number = 1 + my_rank * base + (my_rank < rem ? my_rank : rem);
+
+    char shard_path[ASU_PATH_MAX];
+    snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, my_rank);
+
+    long my_attempts = 0;
+    int my_written = generate_to_file(shard_path, &unit, mol, box_len,
+                                      (float)sr_min, (float)sr_max, my_share,
+                                      my_first_number, max_attempts, &my_attempts);
+    asu_free(&unit);
+
+    int my_error = my_written < 0;
+    int any_error = 0;
+    MPI_Allreduce(&my_error, &any_error, 1, MPI_INT, MPI_MAX, comm);
+
+    if(my_rank == 0 && !any_error)
+        any_error = merge_shard_files(output_file, total_ranks) != 0;
+    MPI_Bcast(&any_error, 1, MPI_INT, 0, comm);
+    if(any_error)
+        return -1;
+
+    int total_written = 0;
+    long total_attempts = 0;
+    MPI_Allreduce(&my_written, &total_written, 1, MPI_INT, MPI_SUM, comm);
+    MPI_Allreduce(&my_attempts, &total_attempts, 1, MPI_LONG, MPI_SUM, comm);
+
+    if(my_rank == 0)
+    {
+        printf("Generated %d/%d asymmetric units in %ld attempts "
+               "(acceptance %.4f). Written to %s\n",
+               total_written, num_structures, total_attempts,
+               total_attempts ? (double)total_written / total_attempts : 0.0,
+               output_file);
+        fflush(stdout);
+    }
+    return total_written;
 }
 
 int generate_asymmetric_units(
@@ -243,8 +294,8 @@ int generate_asymmetric_units(
     char *species,
     int *n_atoms_per_mol,
     int n_mol_types,
-    int *stoic,
-    int n_mol_types_b,
+    int *stoichiometry,
+    int n_stoichiometry,
     int num_structures,
     double sr_min,
     double sr_max,
@@ -253,21 +304,30 @@ int generate_asymmetric_units(
     char *output_file,
     MPI_Comm world_comm)
 {
-    int total_ranks, my_rank;
-    MPI_Comm_size(world_comm, &total_ranks);
+    int my_rank;
     MPI_Comm_rank(world_comm, &my_rank);
 
+    int atom_sum = 0;
+    for(int m = 0; m < n_mol_types; m++)
+        atom_sum += n_atoms_per_mol[m] > 0 ? n_atoms_per_mol[m] : 0;
+
+    const char *problem = NULL;
     if(ncols != 3)
+        problem = "positions must have 3 columns";
+    else if(n_mol_types < 1)
+        problem = "n_atoms_per_mol must not be empty";
+    else if(n_stoichiometry != n_mol_types)
+        problem = "stoichiometry and n_atoms_per_mol must have equal length";
+    else if(atom_sum != n_atoms_total)
+        problem = "sum(n_atoms_per_mol) must equal the number of positions";
+    else if(!species || strlen(species) != 2 * (size_t)n_atoms_total)
+        problem = "species must hold exactly 2 chars per atom";
+
+    if(problem)
     {
         if(my_rank == 0)
-            printf("***ERROR: positions must have 3 columns, got %d\n", ncols);
-        return 0;
-    }
-    if(n_mol_types != n_mol_types_b)
-    {
-        if(my_rank == 0)
-            printf("***ERROR: n_atoms_per_mol and stoic must have equal length\n");
-        return 0;
+            fprintf(stderr, "***ERROR: generate_asymmetric_units: %s\n", problem);
+        return -1;
     }
 
     // Rebuild the per-type molecule array from the concatenated flat arrays.
@@ -291,34 +351,11 @@ int generate_asymmetric_units(
             mol[m].atoms[2 * a + 1] = species[2 * g + 1];
         }
         offset += na;
-        recenter_molecule(&mol[m]);
     }
 
-    // Seed the Mersenne-Twister per rank so each draws an independent stream.
-    init_genrand((unsigned int)(random_seed + my_rank));
-
-    // Split the requested count across ranks; low ranks absorb the remainder.
-    int base = num_structures / total_ranks;
-    int rem  = num_structures % total_ranks;
-    int my_share = base + (my_rank < rem ? 1 : 0);
-
-    // Each rank writes its structures to a private shard file.
-    char shard_path[600];
-    snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, my_rank);
-
-    int my_generated = 0;
-    if(my_share > 0)
-        my_generated = generate_asu_to_file(shard_path, mol, (float)sr_min,
-                                            (float)sr_max, stoic, n_mol_types,
-                                            my_share, max_attempts);
-
-    MPI_Barrier(world_comm);
-
-    // Rank 0 merges the shards into the final output file.
-    if(my_rank == 0)
-        merge_shard_files(output_file, total_ranks);
-
-    MPI_Barrier(world_comm);
+    int total = asu_generate_mpi(mol, n_mol_types, stoichiometry, num_structures,
+                                 sr_min, sr_max, max_attempts, random_seed,
+                                 output_file, world_comm);
 
     for(int m = 0; m < n_mol_types; m++)
     {
@@ -328,13 +365,5 @@ int generate_asymmetric_units(
         free(mol[m].Z);
     }
     free(mol);
-
-    int total_generated = 0;
-    MPI_Allreduce(&my_generated, &total_generated, 1, MPI_INT, MPI_SUM, world_comm);
-
-    if(my_rank == 0)
-        printf("Generated %d/%d asymmetric units. Written to %s\n",
-               total_generated, num_structures, output_file);
-
-    return total_generated;
+    return total;
 }

@@ -73,7 +73,22 @@ int num_compatible_spacegroups(int Z, double tolerance);
 
 %apply (double* IN_ARRAY2, int DIM1, int DIM2) {(double *positions, int n_atoms_total, int ncols)};
 %apply (int* IN_ARRAY1, int DIM1) {(int *n_atoms_per_mol, int n_mol_types)};
-%apply (int* IN_ARRAY1, int DIM1) {(int *stoic, int n_mol_types_b)};
+%apply (int* IN_ARRAY1, int DIM1) {(int *stoichiometry, int n_stoichiometry)};
+%feature("autodoc", "generate_asymmetric_units(positions, species, n_atoms_per_mol, stoichiometry, "
+    "num_structures, sr_min, sr_max, max_attempts, random_seed, output_file, comm) -> int\n\n"
+    "Generate random asymmetric units in parallel and write them as geometry.out blocks.\n\n"
+    "positions:       (n_atoms, 3) float64 array, all molecule types concatenated, Angstrom\n"
+    "species:         str, two chars per atom, space padded ('C H Cl' -> 'C H Cl')\n"
+    "n_atoms_per_mol: int32 array, atoms of each molecule type\n"
+    "stoichiometry:   int32 array, copies of each molecule type per unit (all >= 1, sum >= 2)\n"
+    "num_structures:  total number of asymmetric units\n"
+    "sr_min, sr_max:  open window for the closest intermolecular d_ij/(r_i+r_j)\n"
+    "max_attempts:    placements tried per asymmetric unit before giving up\n"
+    "random_seed:     base seed; rank r uses seed + r; 0 = time based\n"
+    "output_file:     path of the merged output file (overwritten)\n"
+    "comm:            mpi4py communicator\n\n"
+    "Returns the number of asymmetric units written, or -1 on invalid input.")
+    generate_asymmetric_units;
 int generate_asymmetric_units(
     double *positions,
     int n_atoms_total,
@@ -81,8 +96,8 @@ int generate_asymmetric_units(
     char *species,
     int *n_atoms_per_mol,
     int n_mol_types,
-    int *stoic,
-    int n_mol_types_b,
+    int *stoichiometry,
+    int n_stoichiometry,
     int num_structures,
     double sr_min,
     double sr_max,

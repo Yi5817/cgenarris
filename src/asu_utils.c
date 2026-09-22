@@ -3,79 +3,91 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "algebra.h"
+#include "check_structure.h"
 
-
-
-void asu_init(asu *unit, int *stoic, int *n_atoms_in_mol, int n_mol_types)
+int asu_init(asu *unit, const molecule *mol, const int *stoic, int n_mol_types)
 {
+    memset(unit, 0, sizeof(*unit));
 
-    int n_atoms = 0;
-    int n_mol_asym = 0;  // Number of molecules in asymmetric unit
-
-    // Find number of atoms first
-    for(int m = 0; m < n_mol_types; m++)
+    if(n_mol_types < 1)
     {
-        // Number of atoms in asym unit
-        n_atoms += n_atoms_in_mol[m] * stoic[m];
-        n_mol_asym += stoic[m];
+        fprintf(stderr, "***ERROR: asu_init: n_mol_types must be >= 1, got %d\n",
+                n_mol_types);
+        return -1;
     }
 
-
-    // Allocate memory
-    int tbytes = n_mol_types * sizeof(int);  // Total number of mol types
-    int mbytes = n_mol_asym  * sizeof(int);  // Total num of molecules
-    unit->stoic            = (int *) malloc(tbytes);
-    unit->n_atoms_in_mol   = (int *) malloc(tbytes);
-    unit->mol_index = (int *) malloc(mbytes);
-    unit->mol_types = (int *) malloc(mbytes);
-    unit->n_mols = n_mol_asym;
-    asu_allocate(unit, n_atoms);
-
-    // store details
-    memcpy(unit->stoic, stoic, tbytes);
-    memcpy(unit->n_atoms_in_mol, n_atoms_in_mol, tbytes);
-    unit->n_mol_types = n_mol_types;
-    unit->n_atoms = n_atoms;
-
-    // Get molecule index
-    int at = 0;
-    int mol_id = 0;
-
+    int n_atoms = 0;
+    int n_mols = 0;
     for(int m = 0; m < n_mol_types; m++)
-       {
-       for(int st = 0; st < unit->stoic[m]; st++)
-              {
-                     unit->mol_types[mol_id] = m;
-                     unit->mol_index[mol_id] = at;
-                     at += n_atoms_in_mol[m];
-                     mol_id++;
-              }
-       }
+    {
+        if(stoic[m] < 1)
+        {
+            fprintf(stderr, "***ERROR: asu_init: stoichiometry[%d] must be >= 1, got %d\n",
+                    m, stoic[m]);
+            return -1;
+        }
+        if(mol[m].num_of_atoms < 1)
+        {
+            fprintf(stderr, "***ERROR: asu_init: molecule %d has %d atoms\n",
+                    m, mol[m].num_of_atoms);
+            return -1;
+        }
+        n_atoms += mol[m].num_of_atoms * stoic[m];
+        n_mols += stoic[m];
+    }
 
-}
+    if(n_mols < 2)
+    {
+        fprintf(stderr, "***ERROR: asu_init: an asymmetric unit needs at least "
+                "two molecules (sum of stoichiometry), got %d\n", n_mols);
+        return -1;
+    }
 
+    unit->n_atoms = n_atoms;
+    unit->n_mols = n_mols;
+    unit->n_mol_types = n_mol_types;
+    unit->Xcord = (float *)malloc(n_atoms * sizeof(float));
+    unit->Ycord = (float *)malloc(n_atoms * sizeof(float));
+    unit->Zcord = (float *)malloc(n_atoms * sizeof(float));
+    unit->vdw_radii = (float *)malloc(n_atoms * sizeof(float));
+    unit->atoms = (char *)malloc(2 * n_atoms * sizeof(char));
+    unit->mol_index = (int *)malloc(n_mols * sizeof(int));
+    unit->mol_types = (int *)malloc(n_mols * sizeof(int));
+    unit->n_atoms_in_mol = (int *)malloc(n_mol_types * sizeof(int));
+    unit->stoic = (int *)malloc(n_mol_types * sizeof(int));
 
-void asu_allocate(asu *unit, int total_atoms)
-{
-    int fbytes = total_atoms * sizeof(float);
-    unit->Xcord = malloc(fbytes);
-    unit->Ycord = malloc(fbytes);
-    unit->Zcord = malloc(fbytes);
-    unit->com   = malloc(3 * unit->n_mols * sizeof(float));
-    unit->atoms = malloc(total_atoms * sizeof(char) *2);
-}
+    // Molecule tables and species, ordered by type then copy.
+    int at = 0;
+    int k = 0;
+    for(int m = 0; m < n_mol_types; m++)
+    {
+        unit->stoic[m] = stoic[m];
+        unit->n_atoms_in_mol[m] = mol[m].num_of_atoms;
+        for(int copy = 0; copy < stoic[m]; copy++)
+        {
+            unit->mol_types[k] = m;
+            unit->mol_index[k] = at;
+            memcpy(unit->atoms + 2 * at, mol[m].atoms,
+                   2 * mol[m].num_of_atoms * sizeof(char));
+            at += mol[m].num_of_atoms;
+            k++;
+        }
+    }
 
-void print_asu(asu *unit)
-{
-	int N = (*unit).n_atoms;
-	printf("#total atoms in the asymmetric unit = %d \n\n", N);
+    for(int i = 0; i < n_atoms; i++)
+    {
+        if(atom_vdw_radius(unit->atoms[2 * i], unit->atoms[2 * i + 1],
+                           unit->vdw_radii + i))
+        {
+            fprintf(stderr, "***ERROR: asu_init: no van der Waals radius for "
+                    "species '%c%c' (atom %d)\n",
+                    unit->atoms[2 * i], unit->atoms[2 * i + 1], i);
+            asu_free(unit);
+            return -1;
+        }
+    }
 
-	for(int i =0; i < N; i++)
-	{
-		printf("atom %12f %12f %12f %4c%c \n",
-			(*unit).Xcord[i], (*unit).Ycord[i], (*unit).Zcord[i], (*unit).atoms[2*i],(*unit).atoms[2*i+1]);
-	}
+    return 0;
 }
 
 void asu_free(asu *unit)
@@ -83,84 +95,77 @@ void asu_free(asu *unit)
     free(unit->Xcord);
     free(unit->Ycord);
     free(unit->Zcord);
+    free(unit->vdw_radii);
     free(unit->atoms);
-    free(unit->com);
-    free(unit->stoic);
-    free(unit->n_atoms_in_mol);
-    free(unit->mol_types);
     free(unit->mol_index);
-
+    free(unit->mol_types);
+    free(unit->n_atoms_in_mol);
+    free(unit->stoic);
+    memset(unit, 0, sizeof(*unit));
 }
 
-
-/*
-Writes one asymmetric unit as a single extended-XYZ block.
-
-Args:
-    unit: The asymmetric unit to serialize.
-    out: Open, writable file handle (blocks are appended in order).
-    structure_number: 1-based index of this structure within the file.
-
-The block has the standard extxyz layout: an atom-count line, a
-comment line of space-separated key=value metadata, and one
-"element x y z" row per atom. No Lattice key is written and pbc is
-"F F F", so ase.io.read loads each block as a non-periodic Atoms
-object with the metadata available in Atoms.info.
-*/
-void write_asu_extxyz(asu *unit, FILE *out, int structure_number)
+void asu_recenter(asu *unit)
 {
-    fprintf(out, "%d\n", unit->n_atoms);
-
-    fprintf(out, "Properties=species:S:1:pos:R:3 pbc=\"F F F\"");
-    fprintf(out, " structure_number=%d", structure_number);
-    fprintf(out, " n_atoms=%d n_mols=%d n_mol_types=%d",
-            unit->n_atoms, unit->n_mols, unit->n_mol_types);
-    fprintf(out, " sr=%.6f", unit->sr);
-
-    fprintf(out, " stoic=\"");
-    for(int i = 0; i < unit->n_mol_types; i++)
-        fprintf(out, "%d%s", unit->stoic[i], i + 1 < unit->n_mol_types ? " " : "");
-    fprintf(out, "\"");
-
-    fprintf(out, " mol_types=\"");
-    for(int i = 0; i < unit->n_mols; i++)
-        fprintf(out, "%d%s", unit->mol_types[i], i + 1 < unit->n_mols ? " " : "");
-    fprintf(out, "\"\n");
-
-    for(int at = 0; at < unit->n_atoms; at++)
+    int N = unit->n_atoms;
+    float xcom = 0, ycom = 0, zcom = 0;
+    for(int i = 0; i < N; i++)
     {
-        char e0 = unit->atoms[2*at];
-        char e1 = unit->atoms[2*at + 1];
-        if(e1 == ' ' || e1 == '\0' || e1 == '\n')
-            fprintf(out, "%c %.8f %.8f %.8f\n",
-                    e0, unit->Xcord[at], unit->Ycord[at], unit->Zcord[at]);
-        else
-            fprintf(out, "%c%c %.8f %.8f %.8f\n",
-                    e0, e1, unit->Xcord[at], unit->Ycord[at], unit->Zcord[at]);
+        xcom += unit->Xcord[i];
+        ycom += unit->Ycord[i];
+        zcom += unit->Zcord[i];
     }
-    fflush(out);
+    xcom /= N;
+    ycom /= N;
+    zcom /= N;
+    for(int i = 0; i < N; i++)
+    {
+        unit->Xcord[i] -= xcom;
+        unit->Ycord[i] -= ycom;
+        unit->Zcord[i] -= zcom;
+    }
 }
 
-void recenter_asu(asu *unit){
+void asu_print(const asu *unit)
+{
+    printf("#total atoms in the asymmetric unit = %d\n\n", unit->n_atoms);
+    for(int i = 0; i < unit->n_atoms; i++)
+    {
+        printf("atom %12f %12f %12f %c%c\n",
+               unit->Xcord[i], unit->Ycord[i], unit->Zcord[i],
+               unit->atoms[2 * i], unit->atoms[2 * i + 1]);
+    }
+}
 
-    int N = (*unit).n_atoms;
-	float xcom = 0, ycom = 0 , zcom = 0;
-	for(int i = 0; i < N; i++)
-	{
-		xcom += (*unit).Xcord[i];
-		ycom += (*unit).Ycord[i];
-		zcom += (*unit).Zcord[i];
-	}
+// Prints "#key = v0 v1 ..." for an int array.
+static void write_int_list(FILE *out, const char *key, const int *values, int n)
+{
+    fprintf(out, "#%s =", key);
+    for(int i = 0; i < n; i++)
+        fprintf(out, " %d", values[i]);
+    fprintf(out, "\n");
+}
 
-	xcom /= N;
-	ycom /= N;
-	zcom /= N;
+void asu_write_block(const asu *unit, FILE *out, int structure_number)
+{
+    fprintf(out, "####### BEGIN STRUCTURE #######\n");
+    fprintf(out, "#structure_number = %d\n", structure_number);
+    fprintf(out, "#number_of_atoms = %d\n", unit->n_atoms);
+    fprintf(out, "#number_of_molecules = %d\n", unit->n_mols);
+    fprintf(out, "#number_of_molecule_types = %d\n", unit->n_mol_types);
+    write_int_list(out, "stoichiometry", unit->stoic, unit->n_mol_types);
+    write_int_list(out, "number_of_atoms_in_molecule_type", unit->n_atoms_in_mol,
+                   unit->n_mol_types);
+    write_int_list(out, "molecule_types", unit->mol_types, unit->n_mols);
+    write_int_list(out, "molecule_index", unit->mol_index, unit->n_mols);
+    fprintf(out, "#sr = %f\n", unit->sr);
+    fprintf(out, "#\"All distances in Angstroms and using Cartesian coordinate system\"\n");
 
-	for(int i = 0; i < N; i++)
-	{
-		(*unit).Xcord[i] -= xcom;
-		(*unit).Ycord[i] -= ycom;
-		(*unit).Zcord[i] -= zcom;
-	}
-
+    for(int i = 0; i < unit->n_atoms; i++)
+    {
+        fprintf(out, "atom %12f %12f %12f  %c%c \n", unit->Xcord[i],
+                unit->Ycord[i], unit->Zcord[i],
+                unit->atoms[2 * i], unit->atoms[2 * i + 1]);
+    }
+    fprintf(out, "#######  END  STRUCTURE #######\n\n");
+    fflush(out);
 }
