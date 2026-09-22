@@ -137,7 +137,9 @@ static int generate_to_file(const char *out_path, asu *unit, const molecule *mol
 
 /*
 Concatenates the per-rank shard files "<output_file>.rank<r>" into
-output_file (in rank order) and deletes each shard afterwards.
+output_file (in rank order) and deletes each shard afterwards. Each shard
+numbers its blocks from 1; the "#structure_number" lines are rewritten so
+the merged file is numbered consecutively even when a rank stopped early.
 Returns 0 on success, -1 if output_file cannot be created.
 */
 static int merge_shard_files(const char *output_file, int total_ranks)
@@ -149,17 +151,25 @@ static int merge_shard_files(const char *output_file, int total_ranks)
         return -1;
     }
 
+    static const char number_tag[] = "#structure_number = ";
     char shard_path[ASU_PATH_MAX];
-    char buffer[8192];
+    char line[8192];
+    int structure_number = 0;
     for(int r = 0; r < total_ranks; r++)
     {
         snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, r);
         FILE *shard = fopen(shard_path, "r");
         if(!shard)
             continue;
-        size_t n;
-        while((n = fread(buffer, 1, sizeof(buffer), shard)) > 0)
-            fwrite(buffer, 1, n, out);
+        int at_line_start = 1;
+        while(fgets(line, sizeof(line), shard))
+        {
+            if(at_line_start && !strncmp(line, number_tag, sizeof(number_tag) - 1))
+                fprintf(out, "%s%d\n", number_tag, ++structure_number);
+            else
+                fputs(line, out);
+            at_line_start = line[strlen(line) - 1] == '\n';
+        }
         fclose(shard);
         remove(shard_path);
     }
@@ -245,11 +255,10 @@ int asu_generate_mpi(molecule *mol, int n_mol_types, const int *stoichiometry,
     }
 
     // Split the requested count across ranks; low ranks absorb the remainder.
-    // Units are numbered consecutively across ranks in the merged file.
+    // Each shard is numbered from 1; merge_shard_files renumbers consecutively.
     int base = num_structures / total_ranks;
     int rem = num_structures % total_ranks;
     int my_share = base + (my_rank < rem ? 1 : 0);
-    int my_first_number = 1 + my_rank * base + (my_rank < rem ? my_rank : rem);
 
     char shard_path[ASU_PATH_MAX];
     snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, my_rank);
@@ -257,7 +266,7 @@ int asu_generate_mpi(molecule *mol, int n_mol_types, const int *stoichiometry,
     long my_attempts = 0;
     int my_written = generate_to_file(shard_path, &unit, mol, box_len,
                                       (float)sr_min, (float)sr_max, my_share,
-                                      my_first_number, max_attempts, &my_attempts);
+                                      1, max_attempts, &my_attempts);
     asu_free(&unit);
 
     int my_error = my_written < 0;
@@ -268,7 +277,10 @@ int asu_generate_mpi(molecule *mol, int n_mol_types, const int *stoichiometry,
         any_error = merge_shard_files(output_file, total_ranks) != 0;
     MPI_Bcast(&any_error, 1, MPI_INT, 0, comm);
     if(any_error)
+    {
+        remove(shard_path);   // leave no partial shards behind
         return -1;
+    }
 
     int total_written = 0;
     long total_attempts = 0;
