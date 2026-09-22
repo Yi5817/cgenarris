@@ -50,9 +50,10 @@ void asu_place_random(asu *unit, const molecule *mol, float box_len)
     }
 }
 
-float asu_min_sr(const asu *unit)
+float asu_min_sr(const asu *unit, float stop_below)
 {
     float min_ratio_sq = HUGE_VALF;   // (d_ij / (r_i + r_j))^2; n_mols >= 2
+    float stop_sq = stop_below * stop_below;
 
     for(int p = 0; p < unit->n_mols - 1; p++)
     {
@@ -73,6 +74,8 @@ float asu_min_sr(const asu *unit)
                     float ratio_sq = (dx * dx + dy * dy + dz * dz) / (rsum * rsum);
                     if(ratio_sq < min_ratio_sq)
                         min_ratio_sq = ratio_sq;
+                    if(ratio_sq < stop_sq)
+                        return sqrtf(ratio_sq);   // clash: the unit is rejected anyway
                 }
             }
         }
@@ -86,7 +89,7 @@ long asu_generate_one(asu *unit, const molecule *mol, float box_len,
     for(long attempt = 1; attempt <= max_attempts; attempt++)
     {
         asu_place_random(unit, mol, box_len);
-        float sr = asu_min_sr(unit);
+        float sr = asu_min_sr(unit, sr_min);
         if(sr > sr_min && sr < sr_max)
         {
             unit->sr = sr;
