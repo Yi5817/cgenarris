@@ -2,7 +2,7 @@ name: tests
 
 on:
   push:
-    branches: [master, crystal]
+    branches: [master]
   pull_request:
 
 # Cancel a run that a newer push to the same branch or PR has superseded.
