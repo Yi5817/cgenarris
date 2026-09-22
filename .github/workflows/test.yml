@@ -30,3 +30,31 @@ jobs:
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
+
+  python-api:
+    name: Python API (SWIG)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Open MPI and SWIG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin swig
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install setuptools numpy ase pytest mpi4py
+
+      - name: Build pygenarris_mpi in place
+        working-directory: src
+        run: python setup_mpi.py build_ext --inplace
+
+      - name: Run tests on 1 rank
+        run: python -m pytest -v test/test_python_api.py
+
+      - name: Run tests on 2 ranks
+        run: mpirun -n 2 --oversubscribe python -m pytest -q test/test_python_api.py
