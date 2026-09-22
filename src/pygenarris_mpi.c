@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <stddef.h>
@@ -69,15 +70,16 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     set.Z = Z;
     set.vol_attempts = vol_attempt;
     set.random_seed = random_seed;
-    set.stoic = NULL;
-    set.n_mol_types = 0;
+    set.n_mol_types = 1;
+    set.tol = tol1;
     set.max_attempts = max_attempts;
     set.vol_mean = volume_mean1;
     set.vol_std = volume_std1;
     set.norm_dev = norm_dev;
     set.angle_std = angle_std;
     set.sr = -1;
-    set.spg_dist_type = spg_dist_type;
+    strncpy(set.spg_dist_type, spg_dist_type, sizeof(set.spg_dist_type) - 1);
+    set.spg_dist_type[sizeof(set.spg_dist_type) - 1] = '\0';
     set.vdw_matrix = vdw_matrix;
     set.generation_type = CRYSTAL;
 
