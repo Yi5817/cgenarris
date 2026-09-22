@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
     if(set.generation_type == ASU)
     {
-        // Molecules come from geometry_<i>.in (or geometry.in for the first).
+        // Molecules come from geometry_<i>.in.
         molecule *mol = (molecule *)malloc(set.n_mol_types * sizeof(molecule));
         read_molecules(mol, set.n_mol_types);
         if(my_rank == 0)
