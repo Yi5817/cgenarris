@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "molecule.h"
-#include "input_settings.h"
+#include "cgenarris/molecule.h"
+#include "cgenarris/input_settings.h"
 
 /*
 Fills set with the defaults below, then reads "key value" lines from

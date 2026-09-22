@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "crystal_utils.h"
 #include "algebra.h"

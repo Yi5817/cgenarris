@@ -2,7 +2,7 @@
 #define PYGENARRIS_MPI_H
 
 #include "mpi.h"
-#include "crystal.h"
+#include "cgenarris/crystal.h"
 
 void print_time(void);
 

@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <stddef.h>
 #include "mpi.h"
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "combinatorics.h"
 #include "check_structure.h"
@@ -15,8 +15,8 @@
 #include "randomgen.h"
 #include "algebra.h"
 #include "cgenarris_mpi.h"
-#include "pygenarris_mpi.h"
-#include "asu_generation.h"
+#include "cgenarris/pygenarris_mpi.h"
+#include "cgenarris/asu_generation.h"
 
 //maximum mulipicity possible
 #define ZMAX 192

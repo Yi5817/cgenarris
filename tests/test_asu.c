@@ -12,13 +12,13 @@
 
 #include "mpi.h"
 
-#include "asu.h"
-#include "asu_generation.h"
+#include "cgenarris/asu.h"
+#include "cgenarris/asu_generation.h"
 #include "asu_utils.h"
-#include "molecule.h"
+#include "cgenarris/molecule.h"
 #include "molecule_utils.h"
 #include "randomgen.h"
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 
 #define N_ASU        60
 #define SR_MIN       0.75

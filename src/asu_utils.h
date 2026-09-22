@@ -1,8 +1,8 @@
 #ifndef _ASU_UTILS_H_
 #define _ASU_UTILS_H_
 #include <stdio.h>
-#include "asu.h"
-#include "molecule.h"
+#include "cgenarris/asu.h"
+#include "cgenarris/molecule.h"
 
 /*
 Allocates an asymmetric unit for the given molecule types and

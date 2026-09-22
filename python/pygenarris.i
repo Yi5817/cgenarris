@@ -2,7 +2,7 @@
 %module pygenarris
 %{
 #include "algebra.h"
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "pygenarris.h"
 #include "combinatorics.h"
@@ -24,7 +24,7 @@ import_array();
 %}
 
 
-%include "crystal.h"
+%include "cgenarris/crystal.h"
 
 void find_allowed_positions_using_molecular_symmetry(char mol_sym[6],
 	int Z, int Zpp);

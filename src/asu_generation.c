@@ -1,6 +1,6 @@
-#include "asu_generation.h"
+#include "cgenarris/asu_generation.h"
 #include "asu_utils.h"
-#include "asu.h"
+#include "cgenarris/asu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +8,7 @@
 #include <time.h>
 #include "mpi.h"
 #include "algebra.h"
-#include "molecule.h"
+#include "cgenarris/molecule.h"
 #include "molecule_utils.h"
 #include "randomgen.h"
 #include "check_structure.h"   // find_mol_len

@@ -46,7 +46,13 @@ sources_rpress = [
     "d_algebra.c",
 ]
 
-spg_source_dir = "../spglib_src"
+# Repository layout: include/ (public headers), src/ (library headers),
+# third_party/spglib/ (vendored spglib). Absolute paths keep setuptools from
+# writing object files for "../" sources outside build/.
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+include_dir = os.path.join(_ROOT, "include")
+cgenarris_source_dir = os.path.join(_ROOT, "src")
+spg_source_dir = os.path.join(_ROOT, "third_party", "spglib")
 rpress_source_dir = "rigid_press"
 
 for i, src in enumerate(sources_spglib):
@@ -57,9 +63,16 @@ for i, src in enumerate(sources_rpress):
 
 rigid_press = Extension(
     "rigid_press._rigid_press",
-    include_dirs=["./", numpy.get_include()],
+    include_dirs=[
+        "./",
+        include_dir,
+        cgenarris_source_dir,
+        spg_source_dir,
+        numpy.get_include(),
+    ],
     sources=sources_rpress + sources_spglib,
     extra_compile_args=["-std=gnu99", "-fPIC", "-O3", "-DROPT_DEBUG"],
+    swig_opts=[f"-I{include_dir}"],
     libraries=["lapack", "blas"],
 )
 

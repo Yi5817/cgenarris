@@ -16,7 +16,7 @@ from mpi4py import MPI
 
 # Make the in-place-built extension importable from this directory.
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "..", "src")))
+sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "..", "python")))
 
 import pygenarris_mpi as pg_mpi  # noqa: E402
 

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <math.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "algebra.h"
 
 extern float TOL;

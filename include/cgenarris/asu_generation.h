@@ -1,8 +1,8 @@
 #ifndef _ASU_GENERATION_H_
 #define _ASU_GENERATION_H_
 #include "mpi.h"
-#include "molecule.h"
-#include "asu.h"
+#include "cgenarris/molecule.h"
+#include "cgenarris/asu.h"
 
 /*
 Random asymmetric-unit (ASU) generation.

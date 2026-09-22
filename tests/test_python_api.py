@@ -4,9 +4,9 @@ Tests for the Python interface (pygenarris_mpi) of cgenarris.
 Covers both entry points, crystal and asymmetric-unit generation, and checks
 that their output files share one block format readable by the same parser.
 
-Run on one rank:   pytest test/test_python_api.py
-Run on two ranks:  mpirun -n 2 python -m pytest test/test_python_api.py
-Requires the in-place build: cd src && python setup_mpi.py build_ext --inplace
+Run on one rank:   pytest tests/test_python_api.py
+Run on two ranks:  mpirun -n 2 python -m pytest tests/test_python_api.py
+Requires the in-place build: cd python && python setup.py build_ext --inplace
 """
 
 from __future__ import annotations
@@ -23,8 +23,9 @@ from ase.data import atomic_numbers, vdw_radii
 from mpi4py import MPI
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "src")))
-sys.path.insert(0, os.path.join(_HERE, "asu_test"))
+_DATA = os.path.join(_HERE, "data")
+sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "python")))
+sys.path.insert(0, os.path.abspath(os.path.join(_HERE, "..", "examples", "asu")))
 
 import pygenarris_mpi as pg_mpi  # noqa: E402
 
@@ -42,8 +43,8 @@ def comm():
 @pytest.fixture(scope="module")
 def molecules():
     return [
-        ase.io.read(os.path.join(_HERE, "asu_test", "geometry_0.in"), format="aims"),
-        ase.io.read(os.path.join(_HERE, "asu_test", "geometry_1.in"), format="aims"),
+        ase.io.read(os.path.join(_DATA, "asu", "geometry_0.in"), format="aims"),
+        ase.io.read(os.path.join(_DATA, "asu", "geometry_1.in"), format="aims"),
     ]
 
 
@@ -61,7 +62,7 @@ def run_dir(tmp_path_factory, comm):
 
 
 def test_crystal_round_trip(run_dir, comm, monkeypatch):
-    geometry_in = os.path.join(_HERE, "regression_test1", "geometry.in")
+    geometry_in = os.path.join(_DATA, "regression1", "geometry.in")
     if comm.rank == 0:
         shutil.copy(geometry_in, run_dir)
     comm.Barrier()

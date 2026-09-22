@@ -30,6 +30,18 @@ Give **cgenarris** a molecule and a target volume, and it returns thousands of s
 - **Physically meaningful filtering built in.** Every candidate is checked against a per-atom-pair van der Waals distance matrix, so you never post-process piles of overlapping structures.
 - **Embarrassingly parallel.** Space groups are distributed across MPI ranks; throughput scales with the core count of your cluster.
 
+## Layout
+
+```
+include/cgenarris/   public headers (#include "cgenarris/crystal.h")
+src/                 library sources and private headers
+third_party/spglib/  vendored spglib
+apps/                cgenarris_mpi.c, the control.in-driven executable
+python/              SWIG bindings: pygenarris_mpi (setup.py) and rpack/ (rigid press)
+tests/               ctest sources, pytest for the Python API, fixtures in tests/data/
+examples/            runnable examples
+```
+
 ## Citation
 
 If cgenarris contributes to your research, please cite:

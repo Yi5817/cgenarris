@@ -2,7 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "algebra.h"
 #include "spglib.h"

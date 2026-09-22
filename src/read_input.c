@@ -1,6 +1,6 @@
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "molecule_utils.h"
-#include "input_settings.h"
+#include "cgenarris/input_settings.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

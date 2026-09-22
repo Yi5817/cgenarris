@@ -3,8 +3,8 @@
 
 #include "mpi.h"
 
-#include "input_settings.h"
-#include "molecule.h"
+#include "cgenarris/input_settings.h"
+#include "cgenarris/molecule.h"
 
 #define NO_STOP        0
 #define ENOUGH_STOP    1

@@ -1,8 +1,8 @@
 #ifndef _CHECK_STRUCTURE_H
 #define _CHECK_STRUCTURE_H
 
-#include "molecule.h"
-#include "crystal.h"
+#include "cgenarris/molecule.h"
+#include "cgenarris/crystal.h"
 
 typedef struct
 {

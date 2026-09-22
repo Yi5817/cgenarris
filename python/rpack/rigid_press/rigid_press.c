@@ -20,8 +20,8 @@
 #include <math.h>
 #include <time.h>
 
-#include "../../crystal.h"
-#include "../../crystal_utils.h"
+#include "cgenarris/crystal.h"
+#include "crystal_utils.h"
 #include "rigid_press.h"
 #include "symmetrization.h"
 

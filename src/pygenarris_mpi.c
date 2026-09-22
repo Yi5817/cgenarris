@@ -5,18 +5,18 @@
 #include <unistd.h>
 #include <stddef.h>
 #include "mpi.h"
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "combinatorics.h"
 #include "check_structure.h"
 #include "crystal_utils.h"
-#include "input_settings.h"
+#include "cgenarris/input_settings.h"
 #include "molecule_utils.h"
 #include "lattice_generator.h"
 #include "lattice_generator_layer.h"
 #include "randomgen.h"
 #include "algebra.h"
-#include "pygenarris_mpi.h"
+#include "cgenarris/pygenarris_mpi.h"
 #include "pygenarris_mpi_utils.h"
 
 #ifndef CGENARRIS_VERSION
