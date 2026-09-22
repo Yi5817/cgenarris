@@ -49,7 +49,8 @@ sources_rpress = [
 # Repository layout: include/ (public headers), src/ (library headers),
 # third_party/spglib/ (vendored spglib). Absolute paths keep setuptools from
 # writing object files for "../" sources outside build/.
-_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.abspath(os.path.join(_HERE, "..", ".."))
 include_dir = os.path.join(_ROOT, "include")
 cgenarris_source_dir = os.path.join(_ROOT, "src")
 spg_source_dir = os.path.join(_ROOT, "third_party", "spglib")
