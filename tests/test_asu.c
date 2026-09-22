@@ -106,10 +106,12 @@ static void test_min_sr(void)
 
     unit.Xcord[0] = 0;   unit.Ycord[0] = 0; unit.Zcord[0] = 0;
     unit.Xcord[1] = 3.4f; unit.Ycord[1] = 0; unit.Zcord[1] = 0;
-    expect(fabsf(asu_min_sr(&unit) - 1.0f) < 1e-5f, "asu_min_sr: C..C at 3.4 A gives sr = 1");
+    expect(fabsf(asu_min_sr(&unit, 0) - 1.0f) < 1e-5f, "asu_min_sr: C..C at 3.4 A gives sr = 1");
+    expect(fabsf(asu_min_sr(&unit, 0.75f) - 1.0f) < 1e-5f, "asu_min_sr: exact when above stop_below");
 
     unit.Xcord[1] = 1.7f;
-    expect(fabsf(asu_min_sr(&unit) - 0.5f) < 1e-5f, "asu_min_sr: C..C at 1.7 A gives sr = 0.5");
+    expect(fabsf(asu_min_sr(&unit, 0) - 0.5f) < 1e-5f, "asu_min_sr: C..C at 1.7 A gives sr = 0.5");
+    expect(asu_min_sr(&unit, 0.75f) < 0.75f, "asu_min_sr: early return below stop_below");
 
     asu_free(&unit);
     free_molecule(&mol[0]);
@@ -161,7 +163,7 @@ static void test_generate_one_window(void)
         long used = asu_generate_one(&unit, mol, box_len, SR_MIN, SR_MAX, MAX_ATTEMPTS);
         if(used < 1)
             ok_attempts = 0;
-        float sr = asu_min_sr(&unit);
+        float sr = asu_min_sr(&unit, 0);
         if(!(sr > SR_MIN && sr < SR_MAX) || fabsf(sr - unit.sr) > 1e-5f)
             ok_window = 0;
         float com[3] = {0, 0, 0};
