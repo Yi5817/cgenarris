@@ -26,8 +26,9 @@ float asu_box_length(const molecule *mol, const int *stoic, int n_mol_types);
 void asu_place_random(asu *unit, const molecule *mol, float box_len);
 
 // Smallest d_ij / (r_i + r_j) over all pairs of atoms in different
-// molecules.
-float asu_min_sr(const asu *unit);
+// molecules. Returns early with some value < stop_below as soon as one
+// pair is that close; pass 0 for the exact minimum.
+float asu_min_sr(const asu *unit, float stop_below);
 
 /*
 Repeats asu_place_random() until the sr window is met, then recentres the
