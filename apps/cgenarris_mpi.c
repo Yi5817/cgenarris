@@ -84,9 +84,10 @@ int main(int argc, char **argv)
     create_vdw_matrix_from_sr(mol, vdw_cutoff_matrix, set.sr, set.Z);
 
 
+    int status = 0;
     if(set.generation_type == CRYSTAL)
     {
-        mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
+        status = mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
         vdw_cutoff_matrix,
         dim_vdw_matrix,
         dim_vdw_matrix,
@@ -129,5 +130,5 @@ int main(int argc, char **argv)
 	}
 
     MPI_Finalize();
-    return 0;
+    return status < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }

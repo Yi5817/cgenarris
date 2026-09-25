@@ -28,7 +28,8 @@ import_array();
 
 %apply ( float* IN_ARRAY2, int DIM1, int DIM2) {(float *vdw_matrix, int dim1, int dim2)};
 
-void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
+// Returns 0 on success, -1 on output failure on every rank.
+int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     float *vdw_matrix,
     int dim1,
     int dim2,

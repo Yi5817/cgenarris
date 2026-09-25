@@ -60,10 +60,24 @@ def run_dir(tmp_path_factory, comm):
 # Crystal generation
 
 
-def test_crystal_round_trip(run_dir, comm, monkeypatch):
+@pytest.mark.parametrize("output_failure", [None, "write", "open"])
+def test_crystal_round_trip(
+    run_dir: str, comm: MPI.Comm, monkeypatch: pytest.MonkeyPatch,
+    output_failure: str | None,
+) -> None:
+    """
+    Check crystal output and collective handling of output failures.
+    """
+    if output_failure == "write" and not os.path.exists("/dev/full"):
+        pytest.skip("requires /dev/full")
     geometry_in = os.path.join(_DATA, "regression1", "geometry.in")
     if comm.rank == 0:
         shutil.copy(geometry_in, run_dir)
+        output_file = os.path.join(run_dir, "geometry.out")
+        if output_failure == "write":
+            os.symlink("/dev/full", output_file)
+        elif output_failure == "open":
+            os.mkdir(output_file)
     comm.Barrier()
     monkeypatch.chdir(run_dir)  # the crystal generator reads/writes in cwd
     mol: Atoms = ase.io.read(geometry_in, format="aims")
@@ -75,7 +89,7 @@ def test_crystal_round_trip(run_dir, comm, monkeypatch):
     cutoff = sr * (radii[:, None] + radii[None, :])
     cutoff = np.ascontiguousarray(cutoff, dtype=np.float32)
 
-    pg_mpi.mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
+    result = pg_mpi.mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
         cutoff,
         1,            # structures per space group
         z,
@@ -92,6 +106,10 @@ def test_crystal_round_trip(run_dir, comm, monkeypatch):
     )
     comm.Barrier()
 
+    if output_failure:
+        assert comm.allgather(result) == [-1] * comm.size
+        return
+    assert result == 0
     crystals = read_geometry_out(os.path.join(run_dir, "geometry.out"))
     assert len(crystals) > 0
     for i, xtal in enumerate(crystals, start=1):
