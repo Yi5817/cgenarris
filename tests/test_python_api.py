@@ -230,3 +230,9 @@ def test_asu_bad_array_shapes_raise(molecules, run_dir, comm):
         positions, species, n_atoms_per_mol + 1, stoic,
         N_ASU, SR_MIN, SR_MAX, 1000, 1, output_file, comm,
     ) == -1
+    # A negative count must not pass the sum check by offsetting another entry.
+    offset = np.array([-1, 1], dtype=np.int32) * (n_atoms_per_mol[0] + 1)
+    assert pg_mpi.generate_asymmetric_units(
+        positions, species, n_atoms_per_mol + offset, stoic,
+        N_ASU, SR_MIN, SR_MAX, 1000, 1, output_file, comm,
+    ) == -1
