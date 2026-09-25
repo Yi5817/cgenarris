@@ -9,9 +9,11 @@
 
 /*
 Fills set with the defaults below, then reads "key value" lines from
-path. Blank lines and lines starting with '#' are ignored; keys are
-case sensitive; an unknown key, a malformed value or a missing required
-key is an error.
+path. Blank lines are ignored and '#' starts a comment anywhere on a line;
+keys are case sensitive; an unknown key, a malformed value, extra tokens
+after a value or a missing required key is an error.
+
+`tolerance`: ASU placement does not use it.
 
 Keys (unit) [default]:
     generation_type         crystal | layer | asu           [crystal]
