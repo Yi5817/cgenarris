@@ -43,6 +43,12 @@ int lg_check_pos_compatibility_using_std_orientations(crystal* xtal_1,
 						      int overlap_list[],
 						      int len_overlap_list);
 
+/* On success, mapping[i] is the second molecule's index for first atom i.
+ * mapping may be NULL when only testing compatibility.
+ */
+int match_molecule_atoms(crystal *xtal, int first, int second, int n,
+                         int periodic, int *mapping);
+
 int check_overlap_xtal(crystal* xtal,
                        int overlap_list[],
                        int len_overlap_list,

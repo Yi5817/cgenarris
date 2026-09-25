@@ -1,21 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <unistd.h>
 #include <stddef.h>
 #include "mpi.h"
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "combinatorics.h"
 #include "check_structure.h"
 #include "crystal_utils.h"
-#include "input_settings.h"
+#include "cgenarris/input_settings.h"
 #include "molecule_utils.h"
 #include "lattice_generator.h"
 #include "lattice_generator_layer.h"
 #include "randomgen.h"
 #include "algebra.h"
-#include "pygenarris_mpi.h"
+#include "cgenarris/pygenarris_mpi.h"
 #include "pygenarris_mpi_utils.h"
 
 #ifndef CGENARRIS_VERSION
@@ -36,7 +37,7 @@ unsigned int *seed2;
 //int SET_INTERFACE_AREA = 0;
 
 extern float TOL;
-void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
+int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     float *vdw_matrix,
     int dim1,
     int dim2,
@@ -69,15 +70,16 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     set.Z = Z;
     set.vol_attempts = vol_attempt;
     set.random_seed = random_seed;
-    set.stoic = NULL;
-    set.n_mol_types = 0;
+    set.n_mol_types = 1;
+    set.tol = tol1;
     set.max_attempts = max_attempts;
     set.vol_mean = volume_mean1;
     set.vol_std = volume_std1;
     set.norm_dev = norm_dev;
     set.angle_std = angle_std;
     set.sr = -1;
-    set.spg_dist_type = spg_dist_type;
+    strncpy(set.spg_dist_type, spg_dist_type, sizeof(set.spg_dist_type) - 1);
+    set.spg_dist_type[sizeof(set.spg_dist_type) - 1] = '\0';
     set.vdw_matrix = vdw_matrix;
     set.generation_type = CRYSTAL;
 
@@ -93,14 +95,15 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     int success_flag = 0;
     int counter = 0;    //counts number of structures
     int spg_index = 0;  //space group to be generated
+    int output_error = 0;
     FILE *out_file;     //file to output geometries
     if (my_rank == 0)
     {
         out_file = fopen("geometry.out","w");
         if(!out_file)       //check permissions
         {
-            printf("***ERROR: cannot create geometry.out \n");
-            exit(EXIT_FAILURE);
+            fprintf(stderr, "***ERROR: cannot create geometry.out\n");
+            output_error = 1;
         }
         //fprintf(out_file, "my_rank=%d\n", my_rank);
     }
@@ -108,6 +111,10 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     {
         out_file = NULL;
     }
+
+    MPI_Bcast(&output_error, 1, MPI_INT, 0, world_comm);
+    if(output_error)
+        return -1;
 
     //random number seeding, different seeds for different threads
     if (random_seed == 0)
@@ -359,6 +366,13 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                     }
                 }
 
+                // Drain all pending crystal sends before stopping collectively.
+                if(my_rank == 0)
+                    output_error = ferror(out_file) != 0;
+                MPI_Bcast(&output_error, 1, MPI_INT, 0, world_comm);
+                if(output_error)
+                    break;
+
                 MPI_Bcast(&success_flag, 1, MPI_INT, 0, world_comm);
                 MPI_Bcast(&stop_flag, 1, MPI_INT, 0, world_comm);
 
@@ -375,6 +389,9 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                     break;
 
             }//end of attempt loop
+
+            if(output_error)
+                break;
 
             //if max limit is reached if some rank hit the limit
             if (i >= max_attempts/total_ranks)
@@ -397,6 +414,9 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                 break;
 
         }//end of numof structures whileloop
+
+        if(output_error)
+            break;
 
         //move to next spacegroup
         counter = 0;
@@ -423,13 +443,22 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     }//end of spg while loop
 
     if(my_rank == 0)
-        fclose(out_file);
+    {
+        if(fclose(out_file) != 0)
+            output_error = 1;
+        if(output_error)
+            fprintf(stderr, "***ERROR: cannot write geometry.out\n");
+    }
+    MPI_Bcast(&output_error, 1, MPI_INT, 0, world_comm);
+    if(output_error)
+        return -1;
 
     if(my_rank == 0)
     {
         print_time();
         printf("Generation completed.\nHave a nice day!!\n");
     }
+    return 0;
 
 }
 

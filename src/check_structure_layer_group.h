@@ -1,7 +1,7 @@
 #ifndef CHECK_STRUCTURE_LAYER_GROUP_H
 #define CHECK_STRUCTURE_LAYER_GROUP_H
 
-#include "crystal.h"
+#include "cgenarris/crystal.h"
 
 void check_layer_group(crystal* xtal);
 void create_xtal_in_designated_lg(int lg,crystal* xtal,crystal* tmp_xtal);

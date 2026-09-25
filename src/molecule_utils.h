@@ -1,7 +1,7 @@
 #ifndef MOLECULE_UTILS_H
 #define MOLECULE_UTILS_H
 
-#include "molecule.h"
+#include "cgenarris/molecule.h"
 
 void recenter_molecule(molecule* mol);
 void print_molecule(molecule *mol);

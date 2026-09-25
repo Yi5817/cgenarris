@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "crystal_utils.h"
 #include "check_structure.h"
@@ -18,7 +18,6 @@
 #define NORMSQR(a) ( a[0]*a[0] + a[1]*a[1] + a[2]*a[2] )
 #define SQR(x) (x*x)
 
-static void convert_atom2atom_vdw(char *atom,float *atom_vdw, int num_atoms);
 static int fast_screener_vdw(crystal xtal, float *vdw_matrix);
 static int check_pairwise_if_mol_close( float *vdw_matrix, int total_atoms,
     xtal_molecule_pair *mol_pair, float max_dist);
@@ -173,7 +172,12 @@ int structure_checker(crystal *xtal,
         {
             //check pair of selcted molecules.
             //printf("i, j = %d, %d \n", i, j );
-            float max_dist = mol_len[i] + mol_len[j];
+            float max_cutoff = 0;
+            for(int a = mol_id[i]; a < mol_id[i] + num_atoms_in_molecule[i]; a++)
+                for(int b = mol_id[j]; b < mol_id[j] + num_atoms_in_molecule[j]; b++)
+                    max_cutoff = fmaxf(max_cutoff, vdw_matrix[a*total_atoms + b]);
+            // Molecular lengths are diameters; include the pair's atom cutoff.
+            float max_dist = (mol_len[i] + mol_len[j])/2 + max_cutoff;
 
             xtal_molecule_pair mol_pair = {.L = xtal->lattice_vectors, .com1 = com + 3*i,
                 .com2 = com + 3*j, .X = X, .Y = Y, .Z = Z, .index1 = mol_id[i],
@@ -199,42 +203,34 @@ int structure_checker(crystal *xtal,
  * uses Bondii radii. If you need to add/change vdw radii of an atom
  * to the database, do it here.
  */
-static void convert_atom2atom_vdw(char *atom,float *atom_vdw, int num_atoms)
+int atom_vdw_radius(char c0, char c1, float *radius)
+{
+    if      (c0 == 'C' && c1 == ' ') *radius = 1.7;
+    else if (c0 == 'H' && c1 == ' ') *radius = 1.1;
+    else if (c0 == 'N' && c1 == ' ') *radius = 1.55;
+    else if (c0 == 'O' && c1 == ' ') *radius = 1.52;
+    else if (c0 == 'F' && c1 == ' ') *radius = 1.47;
+    else if (c0 == 'P' && c1 == ' ') *radius = 1.8;
+    else if (c0 == 'S' && c1 == ' ') *radius = 1.8;
+    else if (c0 == 'C' && c1 == 'l') *radius = 1.75;
+    else if (c0 == 'B' && c1 == 'r') *radius = 1.85;
+    else if (c0 == 'I' && c1 == ' ') *radius = 1.98;
+    else if (c0 == 'B' && c1 == ' ') *radius = 1.92;
+    else if (c0 == 'H' && c1 == 'e') *radius = 1.40;
+    else if (c0 == 'N' && c1 == 'e') *radius = 1.54;
+    else if (c0 == 'K' && c1 == 'r') *radius = 2.02;
+    else if (c0 == 'S' && c1 == 'i') *radius = 2.10;
+    else
+        return -1;
+    return 0;
+}
+
+void convert_atom2atom_vdw(char *atom,float *atom_vdw, int num_atoms)
 {
 
     for (int i = 0; i < num_atoms; i++)
     {
-        if      (atom[2*i] == 'C' && atom[2*i+1] == ' ')
-        atom_vdw[i]=1.7;
-        else if (atom[2*i] == 'H' && atom[2*i+1] == ' ')
-        atom_vdw[i]=1.1;
-        else if (atom[2*i] == 'N' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.55 ;
-        else if (atom[2*i] == 'O' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.52;
-        else if (atom[2*i] == 'F' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.47;
-        else if (atom[2*i] == 'P' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.8;
-        else if (atom[2*i] == 'S' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.8;
-        else if (atom[2*i] == 'C' && atom[2*i+1] == 'l')
-        atom_vdw[i] = 1.75;
-        else if (atom[2*i] == 'B' && atom[2*i+1] == 'r')
-        atom_vdw[i] = 1.85;
-        else if (atom[2*i] == 'I' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.98;
-        else if (atom[2*i] == 'B' && atom[2*i+1] == ' ')
-        atom_vdw[i] = 1.92;
-        else if (atom[2*i] == 'H' && atom[2*i+1] == 'e')
-        atom_vdw[i] = 1.40;
-        else if (atom[2*i] == 'N' && atom[2*i+1] == 'e')
-        atom_vdw[i] = 1.54;
-        else if (atom[2*i] == 'K' && atom[2*i+1] == 'r')
-        atom_vdw[i] = 2.02;
-        else if (atom[2*i] == 'S' && atom[2*i+1] == 'i')
-        atom_vdw[i] = 2.10;
-        else
+        if(atom_vdw_radius(atom[2*i], atom[2*i+1], atom_vdw + i))
         {
             printf("***ERROR: atom2atom_vdw: atom not found -> %c%c\n",\
                     atom[2*i], atom[2*i+1]);
@@ -325,8 +321,8 @@ static int check_pairwise_if_mol_close( float *vdw_matrix,
         float max_dist_z = sqrt(max_dist_sqr);
         //max_dist_z = max_dist;
         // find ymax
-        int ymax =  maxof( fabs(p[2] - L[2][1]*k + max_dist_z),
-             fabs(p[2] - L[2][1]*k - max_dist_z) ) / fabs(L[1][1]) + 3;
+        int ymax =  maxof( fabs(p[1] - L[2][1]*k + max_dist_z),
+             fabs(p[1] - L[2][1]*k - max_dist_z) ) / fabs(L[1][1]) + 3;
         //printf("ymax = %d\n", ymax );
 
         for(int j = yseq_generator(1); j < ymax; j = yseq_generator(0))
@@ -359,7 +355,7 @@ static int check_pairwise_if_mol_close( float *vdw_matrix,
 
                 // Two molecules considered are within the search radius then
                 // test if the molecules are too close
-                if (NORMSQR(dist) < (max_dist/2 + MAXVDW)*(max_dist/2 + MAXVDW))
+                if (NORMSQR(dist) <= max_dist*max_dist)
                 {
                     /*
                     printf("i, j, k = %d, %d, %d dist = %f %f %f\n",i, j, k, dist[0], dist[1], dist[2] );

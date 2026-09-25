@@ -4,7 +4,7 @@
 #define POS_MAX 47
 #define MAX_ORDER 16
 
-#include "crystal.h"
+#include "cgenarris/crystal.h"
 
 //for storing allowed spacegroup and position
 typedef struct

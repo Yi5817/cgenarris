@@ -2,7 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include "check_structure_layer_group.h"
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "crystal_utils.h"
 #include "combinatorics.h"

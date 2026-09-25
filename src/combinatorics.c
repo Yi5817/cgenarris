@@ -1,8 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "algebra.h"
 #include "spglib.h"
@@ -992,7 +993,8 @@ void find_farthest_equivalent_atoms(molecule *mol,      \
     {
         float atom_dist[3] = {mol->X[i], mol->Y[i], mol->Z[i]};
         if ( fabs (vector3_norm(atom_dist) - max ) < TOL && \
-             mol->atoms[2*i] == mol->atoms[2*max_atom_index] )
+             mol->atoms[2*i] == mol->atoms[2*max_atom_index] &&
+             mol->atoms[2*i+1] == mol->atoms[2*max_atom_index+1] )
             {
                 atom_index[count] = i;
                 count++;
@@ -1004,51 +1006,82 @@ void find_farthest_equivalent_atoms(molecule *mol,      \
 
 
 
+/* Augment a species/distance bipartite matching without reusing atoms. */
+static int assign_atom(int atom, int n, const unsigned char *edges,
+                       int *matched, unsigned char *visited)
+{
+    for(int other = 0; other < n; other++)
+    {
+        if(!edges[atom*n + other] || visited[other]) continue;
+        visited[other] = 1;
+        if(matched[other] < 0 ||
+           assign_atom(matched[other], n, edges, matched, visited))
+        {
+            matched[other] = atom;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int match_molecule_atoms(crystal *xtal, int first, int second, int n,
+                         int periodic, int *mapping)
+{
+    float inverse[3][3];
+    if(periodic) inverse_mat3b3(inverse, xtal->lattice_vectors);
+    unsigned char *edges = malloc((size_t)n * n * sizeof(*edges));
+    if(!edges)
+    {
+        fprintf(stderr, "***ERROR: cannot allocate atom matching matrix\n");
+        return 0;
+    }
+    for(int i = 0; i < n; i++)
+    for(int j = 0; j < n; j++)
+    {
+        int a = first + i, b = second + j;
+        edges[i*n + j] = 0;
+        if(xtal->atoms[2*a] != xtal->atoms[2*b] ||
+           xtal->atoms[2*a+1] != xtal->atoms[2*b+1]) continue;
+        float distance;
+        if(periodic)
+            distance = pdist_appx(xtal->lattice_vectors, inverse,
+                xtal->Xcord[a], xtal->Ycord[a], xtal->Zcord[a],
+                xtal->Xcord[b], xtal->Ycord[b], xtal->Zcord[b]);
+        else
+        {
+            float delta[3] = {xtal->Xcord[a] - xtal->Xcord[b],
+                             xtal->Ycord[a] - xtal->Ycord[b],
+                             xtal->Zcord[a] - xtal->Zcord[b]};
+            distance = vector3_norm(delta);
+        }
+        edges[i*n + j] = distance <= TOL;
+    }
+    int matched[n];
+    unsigned char visited[n];
+    for(int i = 0; i < n; i++) matched[i] = -1;
+    for(int i = 0; i < n; i++)
+    {
+        memset(visited, 0, sizeof(visited));
+        if(!assign_atom(i, n, edges, matched, visited))
+        {
+            free(edges);
+            return 0;
+        }
+    }
+    if(mapping)
+        for(int j = 0; j < n; j++) mapping[matched[j]] = j;
+    free(edges);
+    return 1;
+}
+
 int check_overlap_xtal(crystal* xtal,
                        int overlap_list[],
                        int len_overlap_list,
                        int N)
 {
-    float lattice_vectors[3][3];
-    float inv_lattice_vectors[3][3];
-    copy_mat3b3_mat3b3(lattice_vectors, xtal->lattice_vectors);
-    inverse_mat3b3(inv_lattice_vectors, lattice_vectors);
-
-    for (int i = 1; i < len_overlap_list; i++)
-    {
-        int mol_index = overlap_list[i];
-        for(int j = 0; j < N; j++)
-        {
-            float atom1[3] = {xtal->Xcord[mol_index+j], \
-                              xtal->Ycord[mol_index+j], \
-                              xtal->Zcord[mol_index+j]  };
-
-            float min_dist = 1000*TOL ;
-
-            for(int k = 0; k < N; k++)
-            {
-                float atom2[3] = { xtal->Xcord[k], \
-                                   xtal->Ycord[k], \
-                                   xtal->Zcord[k]   };
-                float dist = pdist_appx(lattice_vectors,        \
-                                   inv_lattice_vectors, \
-                                   atom1[0],
-                                   atom1[1],
-                                   atom1[2],
-                                   atom2[0],
-                                   atom2[1],
-                                   atom2[2]             );
-
-                //float dist = cart_dist(atom1, atom2);
-                if (dist < min_dist)
-                    {min_dist = dist ;}
-            }
-
-            if (min_dist > 1*TOL)
-                {return 0;}
-        }
-    }
-
+    for(int i = 1; i < len_overlap_list; i++)
+        if(!match_molecule_atoms(xtal, 0, overlap_list[i], N, 1, NULL))
+            return 0;
     return 1;
 }
 
@@ -1062,11 +1095,6 @@ int check_overlap_xtal_cartesian(crystal* xtal,
                                 int len_overlap_list,
                                 int N)
 {
-    float lattice_vectors[3][3];
-    float inv_lattice_vectors[3][3];
-    copy_mat3b3_mat3b3(lattice_vectors, xtal->lattice_vectors);
-    inverse_mat3b3(inv_lattice_vectors, lattice_vectors);
-
     float first_com[3], second_com[3];
     compute_molecule_COM(*xtal, first_com, 0);
 
@@ -1092,31 +1120,8 @@ int check_overlap_xtal_cartesian(crystal* xtal,
 
         }
 
-        for(int j = 0; j < N; j++)
-        {
-            float atom1[3] = {xtal->Xcord[mol_index+j],
-                              xtal->Ycord[mol_index+j],
-                              xtal->Zcord[mol_index+j]  };
-
-            float min_dist = 1000*TOL ;
-
-            for(int k = 0; k < N; k++)
-            {
-                float atom2[3] = { xtal->Xcord[k],
-                                   xtal->Ycord[k],
-                                   xtal->Zcord[k]   };
-                float dist = (atom1[0] - atom2[0]) * (atom1[0] - atom2[0])+
-                             (atom1[1] - atom2[1]) * (atom1[1] - atom2[1])+
-                             (atom1[2] - atom2[2]) * (atom1[2] - atom2[2]);
-
-                //float dist = cart_dist(atom1, atom2);
-                if (dist < min_dist)
-                    {min_dist = dist ;}
-            }
-
-            if ( sqrt(min_dist) > 1*TOL)
-                {return 0;}
-        }
+        if(!match_molecule_atoms(xtal, 0, mol_index, N, 0, NULL))
+            return 0;
     }
 
     return 1;

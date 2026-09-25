@@ -2,7 +2,7 @@ name: tests
 
 on:
   push:
-    branches: [master, crystal]
+    branches: [master]
   pull_request:
 
 # Cancel a run that a newer push to the same branch or PR has superseded.
@@ -25,10 +25,36 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DCMAKE_C_COMPILER=mpicc
 
-      # The cgenarris product target does not compile yet (cgenarris_mpi.c),
-      # so only the test executables are built here.
-      - name: Build tests
-        run: cmake --build build -j --target cgenarris_test test_check_structure test_lattice_generator
+      - name: Build
+        run: cmake --build build -j
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
+
+  python-api:
+    name: Python API (SWIG)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Open MPI and SWIG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libopenmpi-dev openmpi-bin swig
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install setuptools numpy ase pytest mpi4py
+
+      - name: Build pygenarris_mpi in place
+        working-directory: python
+        run: python setup.py build_ext --inplace
+
+      - name: Run tests on 1 rank
+        run: python -m pytest -v tests/test_python_api.py
+
+      - name: Run tests on 2 ranks
+        run: mpirun -n 2 --oversubscribe python -m pytest -q tests/test_python_api.py
