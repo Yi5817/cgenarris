@@ -104,7 +104,7 @@ long asu_generate_one(asu *unit, const molecule *mol, float box_len,
 Serial worker: generates up to num_asu asymmetric units and writes them as
 geometry.out blocks numbered from first_number to out_path (truncated
 first). Returns the number of units written (or -1 if the file cannot be
-created) and adds the number of placements tried to *attempts.
+created or written) and adds the number of placements tried to *attempts.
 */
 static int generate_to_file(const char *out_path, asu *unit, const molecule *mol,
                             float box_len, float sr_min, float sr_max,
@@ -132,16 +132,25 @@ static int generate_to_file(const char *out_path, asu *unit, const molecule *mol
         *attempts += used;
         n_written++;
         asu_write_block(unit, out, first_number + n_written - 1);
+        if(ferror(out))
+            break;
     }
 
-    fclose(out);
+    int failed = ferror(out);
+    if(fclose(out) != 0)
+        failed = 1;
+    if(failed)
+    {
+        fprintf(stderr, "***ERROR: asu_generate_mpi: cannot write %s\n", out_path);
+        return -1;
+    }
     return n_written;
 }
 
 /*
 Concatenates the per-rank shard files "<output_file>.rank<r>" into
-output_file (in rank order) and deletes each shard afterwards. Each shard
-numbers its blocks from 1; the "#structure_number" lines are rewritten so
+output_file (in rank order) and deletes shards only after a successful merge.
+Each shard numbers its blocks from 1; the "#structure_number" lines are rewritten so
 the merged file is numbered consecutively even when a rank stopped early.
 */
 static int merge_shard_files(const char *output_file, int total_ranks)
@@ -171,12 +180,16 @@ static int merge_shard_files(const char *output_file, int total_ranks)
     static const char number_tag[] = "#structure_number = ";
     char line[8192];
     int structure_number = 0;
-    for(int r = 0; r < total_ranks; r++)
+    int failed = 0;
+    for(int r = 0; r < total_ranks && !failed; r++)
     {
         snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, r);
         FILE *shard = fopen(shard_path, "r");
         if(!shard)
-            continue;   // checked above; only a concurrent removal gets here
+        {
+            failed = 1;
+            break;
+        }
         int at_line_start = 1;
         while(fgets(line, sizeof(line), shard))
         {
@@ -185,11 +198,26 @@ static int merge_shard_files(const char *output_file, int total_ranks)
             else
                 fputs(line, out);
             at_line_start = line[strlen(line) - 1] == '\n';
+            if(ferror(out))
+                break;
         }
-        fclose(shard);
+        failed = ferror(shard) || ferror(out);
+        if(fclose(shard) != 0)
+            failed = 1;
+    }
+    if(fclose(out) != 0)
+        failed = 1;
+    if(failed)
+    {
+        fprintf(stderr, "***ERROR: asu_generate_mpi: cannot merge shards into %s; "
+                "shards retained\n", output_file);
+        return -1;
+    }
+    for(int r = 0; r < total_ranks; r++)
+    {
+        snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, r);
         remove(shard_path);
     }
-    fclose(out);
     return 0;
 }
 
@@ -289,14 +317,17 @@ int asu_generate_mpi(molecule *mol, int n_mol_types, const int *stoichiometry,
     int any_error = 0;
     MPI_Allreduce(&my_error, &any_error, 1, MPI_INT, MPI_MAX, comm);
 
-    if(my_rank == 0 && !any_error)
-        any_error = merge_shard_files(output_file, total_ranks) != 0;
-    MPI_Bcast(&any_error, 1, MPI_INT, 0, comm);
     if(any_error)
     {
         remove(shard_path);   // leave no partial shards behind
         return -1;
     }
+
+    if(my_rank == 0)
+        any_error = merge_shard_files(output_file, total_ranks) != 0;
+    MPI_Bcast(&any_error, 1, MPI_INT, 0, comm);
+    if(any_error)
+        return -1;   // retain complete shards when merging fails
 
     int total_written = 0;
     long total_attempts = 0;

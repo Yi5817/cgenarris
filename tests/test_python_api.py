@@ -193,6 +193,28 @@ def test_asu_seed_reproducibility(molecules, run_dir, comm):
         np.testing.assert_array_equal(a.get_positions(), b.get_positions())
 
 
+@pytest.mark.skipif(not os.path.exists("/dev/full"), reason="requires /dev/full")
+@pytest.mark.parametrize("fail_merge", [False, True])
+def test_asu_write_failure(
+    molecules: list[Atoms], run_dir: str, comm: MPI.Comm, fail_merge: bool
+) -> None:
+    """
+    Report shard and merge write failures on every rank; retain merge inputs.
+    """
+    output_file = os.path.join(run_dir, "asu.out")
+    if comm.rank == 0:
+        target = output_file if fail_merge else output_file + ".rank0"
+        os.symlink("/dev/full", target)
+    comm.Barrier()
+    result = _generate_asus(
+        molecules, [1, 1], output_file, comm, num_structures=comm.size
+    )
+    assert comm.allgather(result) == [-1] * comm.size
+    if fail_merge:
+        shard = f"{output_file}.rank{comm.rank}"
+        assert len(read_geometry_out(shard)) == 1
+
+
 def test_asu_invalid_input_returns_minus_one(molecules, run_dir, comm):
     output_file = os.path.join(run_dir, "asu.out")
     assert (
