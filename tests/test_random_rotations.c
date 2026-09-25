@@ -23,6 +23,7 @@ static void check_distribution(unsigned int seed_value)
 {
     double mean[3][3] = {{0}}, second[3][3] = {{0}};
     int angles[BINS] = {0};
+    int orientations[8*8*8] = {0};
     double max_orthogonal_error = 0, max_det_error = 0;
     const double pi = acos(-1.0);
     init_genrand(seed_value);
@@ -46,6 +47,20 @@ static void check_distribution(unsigned int seed_value)
         double angle = acos(fmax(-1, fmin(1, cosine)));
         int bin = (int)(BINS*angle/pi);
         angles[bin < BINS ? bin : BINS-1]++;
+        // In ZYZ coordinates, Haar measure is uniform in alpha, cos(beta),
+        // gamma jointly. This also checks twist, unlike a direction-only test.
+        double coordinates[3] = {
+            (atan2(r[1][2], r[0][2]) + pi)/(2*pi),
+            ((double)r[2][2] + 1)/2,
+            (atan2(r[2][1], -r[2][0]) + pi)/(2*pi)
+        };
+        int cell = 0;
+        for(int j = 0; j < 3; j++)
+        {
+            int index = (int)(8*fmax(0, fmin(1, coordinates[j])));
+            cell = 8*cell + (index < 8 ? index : 7);
+        }
+        orientations[cell]++;
     }
     expect(max_orthogonal_error < 2e-6, "R transpose R equals identity");
     expect(max_det_error < 2e-6, "determinant equals +1");
@@ -66,6 +81,16 @@ static void check_distribution(unsigned int seed_value)
         expect(fabs((double)cumulative/SAMPLES - (theta-sin(theta))/pi) < .006,
                "Haar rotation-angle distribution");
     }
+    double expected = (double)SAMPLES/512, chi_square = 0;
+    for(int i = 0; i < 512; i++)
+    {
+        double delta = orientations[i] - expected;
+        chi_square += delta*delta/expected;
+    }
+    // chi-square(511) upper-tail critical value at 1e-6 is 677.59972.
+    expect(chi_square < 677.6, "joint uniformity of complete orientations");
+    printf("seed %u: joint-orientation chi-square = %.3f (511 df)\n",
+           seed_value, chi_square);
     printf("seed %u: mean R00 = %.6f, max orthogonality error = %.3g\n",
            seed_value, mean[0][0]/SAMPLES, max_orthogonal_error);
 }
