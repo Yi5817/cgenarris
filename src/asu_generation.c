@@ -143,10 +143,24 @@ Concatenates the per-rank shard files "<output_file>.rank<r>" into
 output_file (in rank order) and deletes each shard afterwards. Each shard
 numbers its blocks from 1; the "#structure_number" lines are rewritten so
 the merged file is numbered consecutively even when a rank stopped early.
-Returns 0 on success, -1 if output_file cannot be created.
 */
 static int merge_shard_files(const char *output_file, int total_ranks)
 {
+    char shard_path[ASU_PATH_MAX];
+    for(int r = 0; r < total_ranks; r++)
+    {
+        snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, r);
+        FILE *shard = fopen(shard_path, "r");
+        if(!shard)
+        {
+            fprintf(stderr, "***ERROR: asu_generate_mpi: cannot read %s; "
+                    "output_file must be on a filesystem shared by all ranks\n",
+                    shard_path);
+            return -1;
+        }
+        fclose(shard);
+    }
+
     FILE *out = fopen(output_file, "w");
     if(!out)
     {
@@ -155,7 +169,6 @@ static int merge_shard_files(const char *output_file, int total_ranks)
     }
 
     static const char number_tag[] = "#structure_number = ";
-    char shard_path[ASU_PATH_MAX];
     char line[8192];
     int structure_number = 0;
     for(int r = 0; r < total_ranks; r++)
@@ -163,7 +176,7 @@ static int merge_shard_files(const char *output_file, int total_ranks)
         snprintf(shard_path, sizeof(shard_path), "%s.rank%d", output_file, r);
         FILE *shard = fopen(shard_path, "r");
         if(!shard)
-            continue;
+            continue;   // checked above; only a concurrent removal gets here
         int at_line_start = 1;
         while(fgets(line, sizeof(line), shard))
         {
@@ -323,14 +336,21 @@ int generate_asymmetric_units(
     MPI_Comm_rank(world_comm, &my_rank);
 
     int atom_sum = 0;
+    int min_atoms = 1;
     for(int m = 0; m < n_mol_types; m++)
-        atom_sum += n_atoms_per_mol[m] > 0 ? n_atoms_per_mol[m] : 0;
+    {
+        atom_sum += n_atoms_per_mol[m];
+        if(n_atoms_per_mol[m] < min_atoms)
+            min_atoms = n_atoms_per_mol[m];
+    }
 
     const char *problem = NULL;
     if(ncols != 3)
         problem = "positions must have 3 columns";
     else if(n_mol_types < 1)
         problem = "n_atoms_per_mol must not be empty";
+    else if(min_atoms < 1)
+        problem = "every entry of n_atoms_per_mol must be >= 1";
     else if(n_stoichiometry != n_mol_types)
         problem = "stoichiometry and n_atoms_per_mol must have equal length";
     else if(atom_sum != n_atoms_total)
