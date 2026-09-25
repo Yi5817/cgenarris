@@ -121,3 +121,9 @@ add_test(NAME cgenarris_asu_executable
          WORKING_DIRECTORY ${ASU_TEST_DIR})
 set_tests_properties(cgenarris_asu_executable PROPERTIES
                      PASS_REGULAR_EXPRESSION "Generated 20/20 asymmetric units")
+
+add_executable(test_geometry_bugs tests/test_geometry_bugs.c)
+target_link_libraries(test_geometry_bugs cgenarris_core)
+add_test(NAME geometry_bugs COMMAND test_geometry_bugs)
+add_test(NAME lattice_small_volumes COMMAND test_geometry_bugs small-volumes)
+set_tests_properties(lattice_small_volumes PROPERTIES TIMEOUT 5)
