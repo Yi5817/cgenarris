@@ -84,7 +84,7 @@ int num_compatible_spacegroups(int Z, double tolerance);
     "num_structures:  total number of asymmetric units\n"
     "sr_min, sr_max:  open window for the closest intermolecular d_ij/(r_i+r_j)\n"
     "max_attempts:    placements tried per asymmetric unit before giving up\n"
-    "random_seed:     base seed; rank r uses seed + r; 0 = time based\n"
+    "random_seed:     base seed; rank r uses 7 r + seed; 0 = time based\n"
     "output_file:     path of the merged output file (overwritten)\n"
     "comm:            mpi4py communicator\n\n"
     "Returns the number of asymmetric units written, or -1 on invalid input.")

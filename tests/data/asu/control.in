@@ -19,7 +19,7 @@ asu_sr_max              1.3
 # Random placements tried per asymmetric unit before giving up
 max_attempts            100000
 
-# Base random seed; rank r uses random_seed + r. 0 = time based
+# Base random seed; rank r uses 7 r + random_seed (as for crystals). 0 = time based
 random_seed             42
 
 # Output file, one geometry.out-style block per asymmetric unit

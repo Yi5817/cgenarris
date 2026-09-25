@@ -278,14 +278,27 @@ int read_settings(Settings *set, const char *path)
     while(status == 0 && fgets(line, sizeof(line), fileptr))
     {
         line_no++;
+        char *comment = strchr(line, '#');   // '#' starts a comment anywhere
+        if(comment)
+            *comment = '\0';
         char *key = strtok(line, " \t\r\n");
-        if(!key || key[0] == '#')
+        if(!key)
             continue;
         char *value = strtok(NULL, " \t\r\n");
         if(apply_setting(set, key, value))
         {
             fprintf(stderr, "***ERROR: %s line %d could not be read\n", path, line_no);
             status = -1;
+        }
+        else
+        {
+            char *extra = strtok(NULL, " \t\r\n");
+            if(extra)
+            {
+                fprintf(stderr, "***ERROR: %s line %d: unexpected token '%s' "
+                        "after %s\n", path, line_no, extra, key);
+                status = -1;
+            }
         }
     }
     fclose(fileptr);
