@@ -172,7 +172,12 @@ int structure_checker(crystal *xtal,
         {
             //check pair of selcted molecules.
             //printf("i, j = %d, %d \n", i, j );
-            float max_dist = mol_len[i] + mol_len[j];
+            float max_cutoff = 0;
+            for(int a = mol_id[i]; a < mol_id[i] + num_atoms_in_molecule[i]; a++)
+                for(int b = mol_id[j]; b < mol_id[j] + num_atoms_in_molecule[j]; b++)
+                    max_cutoff = fmaxf(max_cutoff, vdw_matrix[a*total_atoms + b]);
+            // Molecular lengths are diameters; include the pair's atom cutoff.
+            float max_dist = (mol_len[i] + mol_len[j])/2 + max_cutoff;
 
             xtal_molecule_pair mol_pair = {.L = xtal->lattice_vectors, .com1 = com + 3*i,
                 .com2 = com + 3*j, .X = X, .Y = Y, .Z = Z, .index1 = mol_id[i],
@@ -316,8 +321,8 @@ static int check_pairwise_if_mol_close( float *vdw_matrix,
         float max_dist_z = sqrt(max_dist_sqr);
         //max_dist_z = max_dist;
         // find ymax
-        int ymax =  maxof( fabs(p[2] - L[2][1]*k + max_dist_z),
-             fabs(p[2] - L[2][1]*k - max_dist_z) ) / fabs(L[1][1]) + 3;
+        int ymax =  maxof( fabs(p[1] - L[2][1]*k + max_dist_z),
+             fabs(p[1] - L[2][1]*k - max_dist_z) ) / fabs(L[1][1]) + 3;
         //printf("ymax = %d\n", ymax );
 
         for(int j = yseq_generator(1); j < ymax; j = yseq_generator(0))
@@ -350,7 +355,7 @@ static int check_pairwise_if_mol_close( float *vdw_matrix,
 
                 // Two molecules considered are within the search radius then
                 // test if the molecules are too close
-                if (NORMSQR(dist) < (max_dist/2 + MAXVDW)*(max_dist/2 + MAXVDW))
+                if (NORMSQR(dist) <= max_dist*max_dist)
                 {
                     /*
                     printf("i, j, k = %d, %d, %d dist = %f %f %f\n",i, j, k, dist[0], dist[1], dist[2] );

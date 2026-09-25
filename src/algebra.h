@@ -32,6 +32,7 @@ int check_vec3_isNull(float a[3], float tol);
 float cart_dist(float p1[3], float p2[3]);
 void array_shuffler_1(float *a, int len );
 void array_shuffler_2(float a[][3], int len );
+/* Haar-uniform proper rotation; consumes three uniform RNG draws. */
 void generate_random_rotation_matrix( float rotation_matrix[3][3] );
 void generate_random_translation_vector(float trans[3]);
 int are_equal_floats(float a, float b, float ftol);

@@ -391,16 +391,26 @@ float cart_dist(float p1[3], float p2[3])
 
 void generate_random_rotation_matrix( float rotation_matrix[3][3] )
 {
-        float phi = 2*PI*uniform_dist_01();
-        //theta, angle with x-axis. this should acos(u), -1<u<1
-        float u = 2*uniform_dist_01() - 1;
-        float theta = acos(u);
-        //compute random axis with theta and phi
-        float axis[] = {cos(phi)*sin(theta),
-                        sin(phi)*sin(theta),
-                        cos(theta)};
-        float psi = 2*PI*uniform_dist_01();
-        rotation_mat_around_axis(rotation_matrix, axis, psi);
+    // Shoemake, Uniform Random Rotations, Graphics Gems III (1992).
+    // A uniform unit quaternion gives Haar-uniform orientations on SO(3).
+    // Keep three draws and the existing RNG stream; use double intermediates
+    // so the float output remains orthogonal to rounding accuracy.
+    double u = uniform_dist_01();
+    double phi = 2*PI*uniform_dist_01();
+    double psi = 2*PI*uniform_dist_01();
+    double a = sqrt(1-u), b = sqrt(u);
+    double x = a*sin(phi), y = a*cos(phi);
+    double z = b*sin(psi), w = b*cos(psi);
+
+    rotation_matrix[0][0] = 1 - 2*(y*y + z*z);
+    rotation_matrix[0][1] = 2*(x*y - z*w);
+    rotation_matrix[0][2] = 2*(x*z + y*w);
+    rotation_matrix[1][0] = 2*(x*y + z*w);
+    rotation_matrix[1][1] = 1 - 2*(x*x + z*z);
+    rotation_matrix[1][2] = 2*(y*z - x*w);
+    rotation_matrix[2][0] = 2*(x*z - y*w);
+    rotation_matrix[2][1] = 2*(y*z + x*w);
+    rotation_matrix[2][2] = 1 - 2*(x*x + y*y);
 }
 
 void generate_random_translation_vector(float trans[3])
