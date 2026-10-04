@@ -56,8 +56,8 @@ Args:
     sr_max: Upper bound of the sr window.
     max_attempts: Placements tried per asymmetric unit before a rank gives
         up (>= 1). A rank that gives up stops early with fewer units.
-    random_seed: Base seed; rank r seeds its generator with 7 r + seed, as
-        the crystal generator does.
+    random_seed: Base seed; rank 0 seeds its generator with it and rank
+        r > 0 with the key {seed, r}, as the crystal generator does.
         0 draws a time-based seed on rank 0 and shares it with all ranks.
     output_file: Path of the merged output file; overwritten.
     comm: MPI communicator to parallelize over.

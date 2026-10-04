@@ -277,7 +277,7 @@ int asu_generate_mpi(molecule *mol, int n_mol_types, const int *stoichiometry,
             random_seed = (int)(time(NULL) % 1000000000L) + 1;
         MPI_Bcast(&random_seed, 1, MPI_INT, 0, comm);
     }
-    init_genrand((unsigned int)abs(my_rank*7 + random_seed));
+    init_genrand_rank((unsigned int)abs(random_seed), my_rank);
 
     if(my_rank == 0)
     {

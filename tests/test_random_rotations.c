@@ -109,5 +109,24 @@ int main(void)
     init_genrand(42);
     for(int i = 0; i < 3; i++) (void)uniform_dist_01();
     expect(next == uniform_dist_01(), "exactly three RNG draws per rotation");
+
+    // First outputs of the reference mt19937ar.out
+    unsigned long key[4] = {0x123, 0x234, 0x345, 0x456};
+    init_by_array(key, 4);
+    expect(genrand_int32() == 1067595299UL && genrand_int32() == 955945823UL,
+           "init_by_array matches the MT19937 reference output");
+    // Rank 0 keeps the single-rank stream. Rank 1 of seed 42 must not repeat
+    // rank 0 of seed 49, as it did when rank r used seed + 7 r.
+    init_genrand(42);
+    unsigned long plain = genrand_int32();
+    init_genrand_rank(42, 0);
+    expect(plain == genrand_int32(), "rank 0 stream equals init_genrand");
+    init_genrand_rank(49, 0);
+    unsigned long other_seed = genrand_int32();
+    init_genrand_rank(42, 1);
+    unsigned long rank1 = genrand_int32();
+    init_genrand_rank(42, 2);
+    expect(rank1 != other_seed && rank1 != plain && rank1 != genrand_int32(),
+           "streams of different seeds and ranks differ");
     return failures ? 1 : 0;
 }

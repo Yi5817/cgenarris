@@ -128,9 +128,9 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     }
     seed = (unsigned int*)malloc(sizeof(unsigned int)); //seed for uniform gen
     seed2 = (unsigned int*)malloc(sizeof(unsigned int)); //seed for random
-    *seed = (unsigned int)abs(my_rank*7 + random_seed);  //some random seed private for each threads
-    *seed2 = (unsigned int)abs(my_rank*17 + random_seed);
-    init_genrand(*seed);
+    *seed = (unsigned int)abs(random_seed);
+    init_genrand_rank(*seed, my_rank);  //independent stream for each rank
+    *seed2 = my_rank ? (unsigned int)genrand_int32() : *seed;
 
     //storing information for compatible space groups
     COMPATIBLE_SPG compatible_spg[230];
@@ -548,9 +548,9 @@ void mpi_generate_layer_with_vdw_cutoff_matrix(
     }
     seed = (unsigned int*)malloc(sizeof(unsigned int)); //seed for uniform gen
     seed2 = (unsigned int*)malloc(sizeof(unsigned int)); //seed for random
-    *seed = (unsigned int)abs(my_rank*7 + random_seed);  //some random seed private for each threads
-    *seed2 = (unsigned int)abs(my_rank*17 + random_seed);
-    init_genrand(*seed);
+    *seed = (unsigned int)abs(random_seed);
+    init_genrand_rank(*seed, my_rank);  //independent stream for each rank
+    *seed2 = my_rank ? (unsigned int)genrand_int32() : *seed;
 
 	//storing information for compatible space groups
 	COMPATIBLE_SPG compatible_spg[230];
