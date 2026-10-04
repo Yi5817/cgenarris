@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "combinatorics.h"
 #include "layer_group_position_database.h"
@@ -40,6 +40,14 @@ int generate_crystal(crystal* random_crystal, molecule* mol,float volume,
     hall_number = hall_number_from_spg(spg);
 
     generate_lattice(random_crystal->lattice_vectors, spg, norm_dev, angle_std, volume);
+    for(int i = 0; i < 3; i++)
+    {
+        if(!(random_crystal->lattice_vectors[i][i] > 0))
+            return 0;
+        for(int j = 0; j < 3; j++)
+            if(!isfinite(random_crystal->lattice_vectors[i][j]))
+                return 0;
+    }
     //find a random pos
     int pos_index = rand_r(seed2) % compatible_spg[compatible_spg_index].num_allowed_pos;
     int pos = compatible_spg[compatible_spg_index].allowed_pos[pos_index];

@@ -5,9 +5,9 @@
 #include <assert.h>
 #include <math.h>
 
-#include "../../spglib.h"
+#include "spglib.h"
 #include "d_algebra.h"
-#include "../../crystal.h"
+#include "cgenarris/crystal.h"
 #include "symmetrization.h"
 
 static void quaternion2matrix(double *quat, double *mat, const int inv);

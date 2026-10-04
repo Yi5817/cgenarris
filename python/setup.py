@@ -71,34 +71,54 @@ sources_spglib = [
     "symmetry.c",
 ]
 
-source_dir = "spglib_src"
-include_dirs = [
-    source_dir,
-]
+# Repository layout: include/ (public headers), src/ (library sources),
+# third_party/spglib/ (vendored spglib). Absolute paths keep setuptools from
+# writing object files for "../" sources outside build/.
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+include_dir = os.path.join(_ROOT, "include")
+source_dir = os.path.join(_ROOT, "src")
+spglib_dir = os.path.join(_ROOT, "third_party", "spglib")
 for i, s in enumerate(sources_spglib):
-    sources_spglib[i] = "%s/%s" % (source_dir, s)
+    sources_spglib[i] = "%s/%s" % (spglib_dir, s)
+
+sources_cgenarris = [
+    "pygenarris_mpi.c",
+    "combinatorics.c",
+    "molecule_placement.c",
+    "algebra.c",
+    "molecule_utils.c",
+    "spg_generation.c",
+    "lattice_generator.c",
+    "crystal_utils.c",
+    "check_structure.c",
+    "read_input.c",
+    "randomgen.c",
+    "lattice_generator_layer.c",
+    "pygenarris_mpi_utils.c",
+    "asu_generation.c",
+    "asu_utils.c",
+]
+for i, s in enumerate(sources_cgenarris):
+    sources_cgenarris[i] = "%s/%s" % (source_dir, s)
 
 pygenarris_mpi = Extension(
     "_pygenarris_mpi",
-    include_dirs=[numpy.get_include(), mpi4py.get_include()],
-    sources=[
-        "pygenarris_mpi.i",
-        "pygenarris_mpi.c",
-        "combinatorics.c",
-        "molecule_placement.c",
-        "algebra.c",
-        "molecule_utils.c",
-        "spg_generation.c",
-        "lattice_generator.c",
-        "crystal_utils.c",
-        "check_structure.c",
-        "read_input.c",
-        "randomgen.c",
-        "lattice_generator_layer.c",
-        "pygenarris_mpi_utils.c",
-    ]
-    + sources_spglib,
-    extra_compile_args=["-std=gnu99", "-fPIC", "-O3"],
+    include_dirs=[
+        numpy.get_include(),
+        mpi4py.get_include(),
+        "./",
+        include_dir,
+        source_dir,
+        spglib_dir,
+    ],
+    sources=["pygenarris_mpi.i"] + sources_cgenarris + sources_spglib,
+    extra_compile_args=["-std=gnu99", "-fPIC", "-O3", "-Wno-error=int-conversion"],
+    swig_opts=[
+        "-I./",
+        f"-I{include_dir}",
+        f"-I{source_dir}",
+        f"-I{mpi4py.get_include()}",
+    ],
     define_macros=[("CGENARRIS_VERSION", '"%s"' % version)],
 )
 

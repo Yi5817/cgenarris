@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <math.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "algebra.h"
 
 extern float TOL;
@@ -80,30 +80,31 @@ void rotation_matrix_from_vectors(float rotmat[3][3],
 	normalise_vector3(b);
 	float axis[3];
 	cross_vector3_vector3(axis,a,b);
-	float angle;
-	angle = acos(dot_vector3_vector3(a,b));
-	
-	//if and b are the same, return identity
-	if ( check_vec3_isNull(axis, TOL) )
-	{
-		rotmat[0][0] = 1;
-		rotmat[0][1] = 0;
-		rotmat[0][2] = 0;
-	
-		rotmat[1][0] = 0;
-		rotmat[1][1] = 1;
-		rotmat[1][2] = 0;
-		
-		rotmat[2][0] = 0;
-		rotmat[2][1] = 0;
-		rotmat[2][2] = 1;
-		
-		return;
-	}
-	//find rotation matrix from axis and angle
-	normalise_vector3(axis);
-	rotation_mat_around_axis(rotmat, axis, angle);
-	
+    float cosine = fmaxf(-1.0f, fminf(1.0f, dot_vector3_vector3(a, b)));
+    float sine = vector3_norm(axis);
+    float angle = atan2f(sine, cosine);
+
+    // Opposite vectors also have a zero cross product. Choose a perpendicular
+    // axis for that pi rotation; do not use the molecular distance tolerance.
+    if(sine < 1e-7f)
+    {
+        if(cosine >= 0)
+        {
+            for(int i = 0; i < 3; i++)
+                for(int j = 0; j < 3; j++)
+                    rotmat[i][j] = i == j ? 1 : 0;
+            return;
+        }
+        int least = 0;
+        for(int i = 1; i < 3; i++)
+            if(fabsf(a[i]) < fabsf(a[least])) least = i;
+        float basis[3] = {0, 0, 0};
+        basis[least] = 1;
+        cross_vector3_vector3(axis, a, basis);
+    }
+    normalise_vector3(axis);
+    rotation_mat_around_axis(rotmat, axis, angle);
+
 	//print_mat3b3(rotmat);
 }
 

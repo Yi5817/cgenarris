@@ -32,25 +32,6 @@ FILE* open_output_file(int my_rank)
     return out_file;
 }
 
-void init_random_seed(unsigned int *seed, unsigned int *seed2, int random_seed, int rank)
-{
-    //random number seeding, different seeds for different threads
-    if (random_seed == 0)
-    {
-        srand((unsigned int)time(NULL));
-        random_seed = rand();
-    }
-    else
-    {
-        srand((unsigned int) 19023411);
-    }
-
-    *seed = (unsigned int)abs(rank*7 + random_seed);  //some random seed private for each threads
-    *seed2 = (unsigned int)abs(rank*17 + random_seed);
-    init_genrand(*seed);
-
-}
-
 void recenter_molecules(molecule* mol, int mol_types)
 {
     for(int i = 0; i < mol_types; i++)

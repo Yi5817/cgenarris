@@ -1,8 +1,8 @@
 #ifndef MOLECULE_PLACEMENT_H
 #define MOLECULE_PLACEMENT_H
 
-#include "molecule.h"
-#include "input_settings.h"
+#include "cgenarris/molecule.h"
+#include "cgenarris/input_settings.h"
 
 void apply_all_symmetry_ops(crystal *xtal,
                             molecule *mol,

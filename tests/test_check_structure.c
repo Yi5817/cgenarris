@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "crystal.h"
-#include "molecule.h"
-#include "read_input.h"
+#include "cgenarris/crystal.h"
+#include "cgenarris/molecule.h"
+#include "cgenarris/read_input.h"
 #include "check_structure.h"
 
 static int parse_structure_file(const char *path, crystal *xtal);

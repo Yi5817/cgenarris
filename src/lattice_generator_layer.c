@@ -6,7 +6,7 @@
 #include "randomgen.h"
 #include "algebra.h"
 //#include "spg_generation.h"
-//#include "read_input.h"
+//#include "cgenarris/read_input.h"
 #define LOWB 2.5  //lower bound for length of lattice vector
 #define PI 3.141592653
 #define epsilon_length 0.001

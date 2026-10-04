@@ -7,11 +7,11 @@
 
 #include "algebra.h"
 #include "check_structure.h"
-#include "crystal.h"
+#include "cgenarris/crystal.h"
 #include "crystal_utils.h"
-#include "molecule.h"
-#include "read_input.h"
-#include "pygenarris_mpi.h"
+#include "cgenarris/molecule.h"
+#include "cgenarris/read_input.h"
+#include "cgenarris/pygenarris_mpi.h"
 #include "spglib.h"
 
 enum status{FAIL, SUCCESS};

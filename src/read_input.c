@@ -1,248 +1,313 @@
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "molecule_utils.h"
-#include "input_settings.h"
+#include "cgenarris/input_settings.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 
 float TOL;
-void read_control(int* num_structures, int* Z, float* Zp_max,
-                 float* volume_mean,float* volume_std,
-                 float *sr,long *max_attempts, char *spg_dist_type,
-                 int *vol_attempts,int *random_seed,
-                 char *generation_type,
-                 float* interface_area_mean,float* interface_area_std,
-                 int* volume_multiplier,
-                 float lattice_vector_2d[2][3], float* norm_dev,
-		 float* angle_std, int **stoic, int *mol_types,
-		 int *rigid_press)
+
+// ---- control.in parser -----------------------------------------------------
+
+#define LINE_MAX_LEN 1024
+
+static void settings_defaults(Settings *set)
 {
-	FILE *fileptr;
-	size_t len = 0;
-	char *line = NULL;
-	char *sub_line = NULL;
-	int read;
-	fileptr = fopen("control.in","r");
+    memset(set, 0, sizeof(*set));
+    set->generation_type = CRYSTAL;
+    set->num_structures = -1;          // required
+    set->max_attempts = 100000;
+    set->random_seed = 0;
+    set->tol = 0.1;
+    set->Z = -1;                       // required for crystal/layer
+    set->vol_mean = -1;                // required for crystal/layer
+    set->vol_std = -1;                 // required for crystal/layer
+    set->vol_attempts = 100000;
+    set->sr = 0.85;
+    set->norm_dev = 0.4;
+    set->angle_std = 8;
+    strcpy(set->spg_dist_type, "standard");
+    set->rigid_press = 0;
+    set->vdw_matrix = NULL;
+    set->interface_area_mean = 0;
+    set->interface_area_std = 0;
+    set->volume_multiplier = 3;
+    set->n_mol_types = 1;
+    for(int i = 0; i < MAX_MOL_TYPES; i++)
+        set->stoic[i] = 0;             // 0 = not given; filled with 1s later
+    set->asu_sr_min = 0.75;
+    set->asu_sr_max = 1.3;
+    strcpy(set->asu_output_file, "asu.out");
+}
 
-	if(!fileptr)
-	{
-		printf("***ERROR: no control.in file \n");
-		exit(EXIT_FAILURE);
-	}
+// Parses one integer token; returns 0 on success.
+static int parse_int(const char *key, const char *tok, int *out)
+{
+    char *end;
+    long v = strtol(tok, &end, 10);
+    if(tok[0] == '\0' || *end != '\0')
+    {
+        fprintf(stderr, "***ERROR: control.in: %s expects an integer, got '%s'\n", key, tok);
+        return -1;
+    }
+    *out = (int)v;
+    return 0;
+}
 
-	//defaults
-	*sr = 0.85;
-	*norm_dev = 0.4;
-	*angle_std = 8;
-	*vol_attempts = 100000;
-	*random_seed = 0;
-	*volume_multiplier = 3;
-	*interface_area_mean = 0;
-	*interface_area_std = 0;
-	lattice_vector_2d[0][0] = 0;
-	lattice_vector_2d[0][1] = 0;
-	lattice_vector_2d[0][2] = 0;
-	lattice_vector_2d[1][0] = 0;
-	lattice_vector_2d[1][2] = 0;
-	lattice_vector_2d[1][3] = 0;
-	strcpy(generation_type, "crystal");
-	*mol_types = 0;
-	*rigid_press = 0;
+static int parse_long(const char *key, const char *tok, long *out)
+{
+    char *end;
+    long v = strtol(tok, &end, 10);
+    if(tok[0] == '\0' || *end != '\0')
+    {
+        fprintf(stderr, "***ERROR: control.in: %s expects an integer, got '%s'\n", key, tok);
+        return -1;
+    }
+    *out = v;
+    return 0;
+}
 
-	//read from control
-	while ((read = getline(&line, &len, fileptr)) != -1)
-	{
+static int parse_float(const char *key, const char *tok, float *out)
+{
+    char *end;
+    double v = strtod(tok, &end);
+    if(tok[0] == '\0' || *end != '\0')
+    {
+        fprintf(stderr, "***ERROR: control.in: %s expects a number, got '%s'\n", key, tok);
+        return -1;
+    }
+    *out = (float)v;
+    return 0;
+}
 
-	    //if comment
-	    if (strstr(line, "#") != NULL)
-	        continue;
+/*
+Applies one "key value..." line to set. `value` is the first value token;
+further tokens are fetched with strtok(NULL, ...). Returns 0 on success.
+*/
+static int apply_setting(Settings *set, const char *key, char *value)
+{
+    if(!value)
+    {
+        fprintf(stderr, "***ERROR: control.in: %s has no value\n", key);
+        return -1;
+    }
 
-	    sub_line=strtok(line," ");
+    if(!strcmp(key, "generation_type"))
+    {
+        if(!strcmp(value, "crystal"))    set->generation_type = CRYSTAL;
+        else if(!strcmp(value, "layer")) set->generation_type = LAYER;
+        else if(!strcmp(value, "asu"))   set->generation_type = ASU;
+        else
+        {
+            fprintf(stderr, "***ERROR: control.in: generation_type must be "
+                    "crystal, layer or asu, got '%s'\n", value);
+            return -1;
+        }
+        return 0;
+    }
+    if(!strcmp(key, "number_of_structures")) return parse_int(key, value, &set->num_structures);
+    if(!strcmp(key, "max_attempts"))         return parse_long(key, value, &set->max_attempts);
+    if(!strcmp(key, "random_seed"))          return parse_int(key, value, &set->random_seed);
+    if(!strcmp(key, "tolerance"))            return parse_float(key, value, &set->tol);
 
-	    if(strcmp(sub_line, "Z") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*Z = atoi(sub_line);
-		continue;
-	    }
+    if(!strcmp(key, "Z"))                    return parse_int(key, value, &set->Z);
+    if(!strcmp(key, "volume_mean"))          return parse_float(key, value, &set->vol_mean);
+    if(!strcmp(key, "volume_std"))           return parse_float(key, value, &set->vol_std);
+    if(!strcmp(key, "volume_attempts"))
+    {
+        int v;
+        if(parse_int(key, value, &v))
+            return -1;
+        if(v != 0)                           // 0 keeps the default
+            set->vol_attempts = v;
+        return 0;
+    }
+    if(!strcmp(key, "sr"))                   return parse_float(key, value, &set->sr);
+    if(!strcmp(key, "lattice_norm_dev") || !strcmp(key, "norm_dev"))
+        return parse_float(key, value, &set->norm_dev);
+    if(!strcmp(key, "lattice_angle_std") || !strcmp(key, "angle_std"))
+        return parse_float(key, value, &set->angle_std);
+    if(!strcmp(key, "rigid_press"))          return parse_int(key, value, &set->rigid_press);
+    if(!strcmp(key, "spg_distribution_type"))
+    {
+        if(strcmp(value, "standard") && strcmp(value, "uniform") &&
+           strcmp(value, "chiral") && strcmp(value, "racemic") && strcmp(value, "csd"))
+        {
+            fprintf(stderr, "***ERROR: control.in: bad value of "
+                    "spg_distribution_type '%s'\n", value);
+            return -1;
+        }
+        strncpy(set->spg_dist_type, value, sizeof(set->spg_dist_type) - 1);
+        return 0;
+    }
 
-	    if (strcmp(sub_line,"lattice_vector_a")==0)
-	    {
-	        sub_line = strtok(NULL,"        ");
-		lattice_vector_2d[0][0] = atof(sub_line);
-		sub_line = strtok(NULL,"        ");
-		lattice_vector_2d[0][1] = atof(sub_line);
-		sub_line = strtok(NULL,"        ");
+    if(!strcmp(key, "interface_area_mean"))  return parse_float(key, value, &set->interface_area_mean);
+    if(!strcmp(key, "interface_area_std"))   return parse_float(key, value, &set->interface_area_std);
+    if(!strcmp(key, "volume_multiplier"))    return parse_int(key, value, &set->volume_multiplier);
+    if(!strcmp(key, "lattice_vector_a") || !strcmp(key, "lattice_vector_b"))
+    {
+        float *vec = set->lattice_vector_2d[key[strlen(key) - 1] - 'a'];
+        if(parse_float(key, value, vec))
+            return -1;
+        for(int i = 1; i < 3; i++)
+        {
+            char *tok = strtok(NULL, " \t\r\n");
+            if(!tok || parse_float(key, tok, vec + i))
+            {
+                fprintf(stderr, "***ERROR: control.in: %s expects three numbers\n", key);
+                return -1;
+            }
+        }
+        return 0;
+    }
 
-		lattice_vector_2d[0][2] = atof(sub_line);
-                continue;
+    if(!strcmp(key, "molecule_types"))
+    {
+        if(parse_int(key, value, &set->n_mol_types))
+            return -1;
+        if(set->n_mol_types < 1 || set->n_mol_types > MAX_MOL_TYPES)
+        {
+            fprintf(stderr, "***ERROR: control.in: molecule_types must be in "
+                    "[1, %d], got %d\n", MAX_MOL_TYPES, set->n_mol_types);
+            return -1;
+        }
+        return 0;
+    }
+    if(!strcmp(key, "stoichiometry") || !strcmp(key, "stochiometry"))
+    {
+        int n = 0;
+        char *tok = value;
+        while(tok)
+        {
+            if(n == MAX_MOL_TYPES)
+            {
+                fprintf(stderr, "***ERROR: control.in: stoichiometry has more "
+                        "than %d entries\n", MAX_MOL_TYPES);
+                return -1;
+            }
+            if(parse_int(key, tok, set->stoic + n))
+                return -1;
+            if(set->stoic[n] < 1)
+            {
+                fprintf(stderr, "***ERROR: control.in: stoichiometry entries "
+                        "must be >= 1, got %d\n", set->stoic[n]);
+                return -1;
+            }
+            n++;
+            tok = strtok(NULL, " \t\r\n");
+        }
+        for(int i = n; i < MAX_MOL_TYPES; i++)
+            set->stoic[i] = 0;         // marks the end of the given entries
+        return 0;
+    }
+    if(!strcmp(key, "asu_sr_min"))           return parse_float(key, value, &set->asu_sr_min);
+    if(!strcmp(key, "asu_sr_max"))           return parse_float(key, value, &set->asu_sr_max);
+    if(!strcmp(key, "asu_output_file"))
+    {
+        if(strlen(value) >= sizeof(set->asu_output_file))
+        {
+            fprintf(stderr, "***ERROR: control.in: asu_output_file is too long\n");
+            return -1;
+        }
+        strcpy(set->asu_output_file, value);
+        return 0;
+    }
 
-	    }
-	    if (strcmp(sub_line,"lattice_vector_b")==0)
-	    {
-	        sub_line = strtok(NULL,"        ");
-		lattice_vector_2d[1][0] = atof(sub_line);
-		sub_line = strtok(NULL,"        ");
-		lattice_vector_2d[1][1] = atof(sub_line);
-		sub_line = strtok(NULL,"        ");
-		lattice_vector_2d[1][2] = atof(sub_line);
-		continue;
-	    }
+    fprintf(stderr, "***ERROR: control.in: unknown key '%s'\n", key);
+    return -1;
+}
 
-	    if (strcmp(sub_line,"generation_type") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		strcpy(generation_type, sub_line);
-		generation_type[strcspn(generation_type, "\n")] = 0;
-		continue;
-	    }
+// Cross-field checks after every line has been read.
+static int validate_settings(Settings *set)
+{
+    const char *problem = NULL;
 
-	    if(strcmp(sub_line, "sr") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*sr = atof(sub_line);
-		continue;
-	    }
+    if(set->num_structures < 0)
+        problem = "number_of_structures is required";
+    else if(set->max_attempts < 1)
+        problem = "max_attempts must be >= 1";
+    else if(set->generation_type == ASU)
+    {
+        int n_given = 0;
+        while(n_given < MAX_MOL_TYPES && set->stoic[n_given] > 0)
+            n_given++;
+        if(n_given == 0)                       // key omitted: one copy of each
+            for(int i = 0; i < set->n_mol_types; i++)
+                set->stoic[i] = 1;
+        else if(n_given != set->n_mol_types)
+            problem = "stoichiometry must list one entry per molecule type";
 
-	    if(strcmp(sub_line, "volume_mean") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*volume_mean = atof(sub_line);
-		continue;
-	    }
+        if(!problem && !(set->asu_sr_min >= 0 && set->asu_sr_min < set->asu_sr_max))
+            problem = "asu_sr_min must satisfy 0 <= asu_sr_min < asu_sr_max";
+    }
+    else
+    {
+        if(set->Z < 1)
+            problem = "Z is required and must be >= 1";
+        else if(set->vol_mean <= 0)
+            problem = "volume_mean is required and must be > 0";
+        else if(set->vol_std < 0)
+            problem = "volume_std is required and must be >= 0";
+        else if(set->sr <= 0)
+            problem = "sr must be > 0";
+    }
 
-	    if(strcmp(sub_line, "volume_std") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*volume_std = atof(sub_line);
-		continue;
-	    }
+    if(problem)
+    {
+        fprintf(stderr, "***ERROR: control.in: %s\n", problem);
+        return -1;
+    }
+    return 0;
+}
 
-	    if(strcmp(sub_line, "rigid_press") == 0)
-	    {
-	        sub_line = strtok(NULL, " ");
-		*rigid_press = atoi(sub_line);
-		continue;
-	    }
+int read_settings(Settings *set, const char *path)
+{
+    settings_defaults(set);
 
-	    if(strcmp(sub_line, "interface_area_mean") == 0)
-	    {
-		    sub_line = strtok(NULL," ");
-		    *interface_area_mean = atof(sub_line);
-		    continue;
-	    }
+    FILE *fileptr = fopen(path, "r");
+    if(!fileptr)
+    {
+        fprintf(stderr, "***ERROR: cannot open %s\n", path);
+        return -1;
+    }
 
-	    if(strcmp(sub_line, "interface_area_std") == 0)
-	    {
-		    sub_line = strtok(NULL," ");
-		    *interface_area_std = atof(sub_line);
-		    continue;
-	    }
+    char line[LINE_MAX_LEN];
+    int line_no = 0;
+    int status = 0;
+    while(status == 0 && fgets(line, sizeof(line), fileptr))
+    {
+        line_no++;
+        char *comment = strchr(line, '#');   // '#' starts a comment anywhere
+        if(comment)
+            *comment = '\0';
+        char *key = strtok(line, " \t\r\n");
+        if(!key)
+            continue;
+        char *value = strtok(NULL, " \t\r\n");
+        if(apply_setting(set, key, value))
+        {
+            fprintf(stderr, "***ERROR: %s line %d could not be read\n", path, line_no);
+            status = -1;
+        }
+        else
+        {
+            char *extra = strtok(NULL, " \t\r\n");
+            if(extra)
+            {
+                fprintf(stderr, "***ERROR: %s line %d: unexpected token '%s' "
+                        "after %s\n", path, line_no, extra, key);
+                status = -1;
+            }
+        }
+    }
+    fclose(fileptr);
 
-	    if(strcmp(sub_line, "volume_multiplier") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*volume_multiplier = atof(sub_line);
-		continue;
-	    }
-	    if(strcmp(sub_line, "number_of_structures") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*num_structures = atoi(sub_line);
-		continue;
-	    }
-
-	    if(strcmp(sub_line, "tolerance") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		TOL = atof(sub_line);
-		continue;
-	    }
-
-	    if(strcmp(sub_line, "max_attempts") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*max_attempts = atol(sub_line);
-		continue;
-	    }
-
-	    if(strcmp(sub_line, "lattice_angle_std") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*angle_std = atof(sub_line);
-		continue;
-	    }
-
-	    if(strcmp(sub_line, "lattice_norm_dev") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*norm_dev = atof(sub_line);
-		continue;
-	    }
-
-	    if(strcmp(sub_line, "spg_distribution_type") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		sub_line = strtok(sub_line, "\n");
-		strcpy(spg_dist_type, sub_line);
-
-		// Remove carriage at the end return if present
-		int len = strlen(spg_dist_type);
-		if(spg_dist_type[len-1] == '\r' || spg_dist_type[len-1] == '\n')
-		    spg_dist_type[len-1] = '\0';
-
-		if( !strcmp(spg_dist_type, "standard") ||
-		    !strcmp(spg_dist_type, "uniform")  ||
-		    !strcmp(spg_dist_type, "chiral")   ||
-		    !strcmp(spg_dist_type, "racemic")  ||
-		    !strcmp(spg_dist_type, "csd")       
-		   )
-		    continue;
-		else
-		{
-		    printf("***ERROR: read_input: bad value of spg_distribution_type %s", spg_dist_type);
-		    exit(EXIT_FAILURE);
-		}
-	    }
-
-	    if(strcmp(sub_line, "random_seed") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		*random_seed = atoi(sub_line);
-		continue;
-	    }
-
-	    if(strcmp(sub_line, "volume_attempts") == 0)
-	    {
-	        sub_line = strtok(NULL," ");
-		int inp = atoi(sub_line);
-		if(inp != 0)
-		    *vol_attempts = inp;
-		continue;
-	    }
-
-	    if(strcmp(sub_line, "molecule_types") == 0)
-	    {
-	        sub_line = strtok(NULL, " ");
-		*mol_types = atoi(sub_line);
-		continue;
-	    }
-	    
-	    if(strcmp(sub_line, "stochiometry") == 0)
-	    {
-	        *stoic = (int *)malloc(2*sizeof(int));
-		sub_line = strtok(NULL, " ");
-		(*stoic)[0] = atoi(sub_line);
-		sub_line = strtok(NULL, " ");
-		(*stoic)[1] = atoi(sub_line);
-		
-	    }
-   	}
-
-	fclose(fileptr);
-	*Zp_max = 192;
+    if(status == 0)
+        status = validate_settings(set);
+    if(status == 0)
+        TOL = set->tol;
+    return status;
 }
 
 
@@ -324,15 +389,7 @@ void read_molecules(molecule *mol, int mol_types)
     for(int i = 0; i < mol_types; i++)
     {
         char filename[25];
-
-        if(i == 0)
-            if(access("geometry.in", F_OK) == 0)
-                sprintf(filename, "geometry.in");
-            else
-                sprintf(filename, "geometry_0.in");
-        else
-            sprintf(filename, "geometry_%d.in", i);
-
+        sprintf(filename, "geometry_%d.in", i);
         read_geometry(mol + i, filename);
     }
 
@@ -366,9 +423,9 @@ void print_input_settings(Settings set)
     printf("Random seed:                                  %d\n", set.random_seed);
     printf("Lattice angle standard deviation:             %f\n", set.angle_std);
     printf("Lattice principal component deviation:        %f\n", set.norm_dev);
-    printf("Tolerance:                                    %f\n", TOL);
+    printf("Tolerance:                                    %f\n", set.tol);
     printf("Use rigid press:                              %d\n", set.rigid_press);
-    if(set.n_mol_types != 0)
+    if(set.n_mol_types > 1)
     {
         printf("Number of Molecules:                          %d\n", set.n_mol_types);
         printf("Stochiometry:                                 ");
