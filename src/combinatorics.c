@@ -216,7 +216,7 @@ void find_compatible_spg_positions(molecule *mol,
                 }
             }
 
-            float rand_frac_array[3]={0.19316, 0.74578, 0.26245};
+            float rand_frac_array[3]={0.69606, 0.5475, 0.40125};
             vector3_intmat3b3_multiply(rot,rand_frac_array,
                                     rand_frac_array);
             vector3_add(trans,
