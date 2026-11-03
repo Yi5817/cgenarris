@@ -1,4 +1,5 @@
 #include "cgenarris/read_input.h"
+#include "crystal_utils.h"
 #include "molecule_utils.h"
 #include "cgenarris/input_settings.h"
 #include <stdio.h>
@@ -20,6 +21,7 @@ static void settings_defaults(Settings *set)
     set->max_attempts = 100000;
     set->random_seed = 0;
     set->tol = 0.1;
+    set->symprec = SPGLIB_SYMPREC_DEFAULT;
     set->Z = -1;                       // required for crystal/layer
     set->vol_mean = -1;                // required for crystal/layer
     set->vol_std = -1;                 // required for crystal/layer
@@ -110,6 +112,7 @@ static int apply_setting(Settings *set, const char *key, char *value)
     if(!strcmp(key, "max_attempts"))         return parse_long(key, value, &set->max_attempts);
     if(!strcmp(key, "random_seed"))          return parse_int(key, value, &set->random_seed);
     if(!strcmp(key, "tolerance"))            return parse_float(key, value, &set->tol);
+    if(!strcmp(key, "symprec"))              return parse_float(key, value, &set->symprec);
 
     if(!strcmp(key, "Z"))                    return parse_int(key, value, &set->Z);
     if(!strcmp(key, "volume_mean"))          return parse_float(key, value, &set->vol_mean);
@@ -424,6 +427,7 @@ void print_input_settings(Settings set)
     printf("Lattice angle standard deviation:             %f\n", set.angle_std);
     printf("Lattice principal component deviation:        %f\n", set.norm_dev);
     printf("Tolerance:                                    %f\n", set.tol);
+    printf("spglib symprec:                               %f\n", set.symprec);
     printf("Use rigid press:                              %d\n", set.rigid_press);
     if(set.n_mol_types > 1)
     {

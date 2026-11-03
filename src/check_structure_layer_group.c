@@ -21,7 +21,7 @@ void check_layer_group(crystal* xtal)
     recenter_molecule(mol);
     int attempted_lg = xtal->spg;
     printf("The attempted layer group is %d\n",attempted_lg);
-    int spglib_spg = detect_spg_using_spglib(xtal);
+    int spglib_spg = detect_spg_using_spglib(xtal, SPGLIB_SYMPREC_DEFAULT);
     printf( "#SPGLIB_detected_spacegroup = %d\n", spglib_spg);
     int spglib_lg[5];
     int match = 0;

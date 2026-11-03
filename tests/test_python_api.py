@@ -102,6 +102,7 @@ def test_crystal_round_trip(
         223344,       # random seed
         0.4,          # lattice norm deviation
         8.0,          # lattice angle std
+        0.001,        # spglib symprec
         comm,
     )
     comm.Barrier()

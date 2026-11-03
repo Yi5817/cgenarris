@@ -42,7 +42,7 @@ void print_crystal(crystal* xtal)
     }
 }
 
-void print_crystal2file(crystal* xtal, FILE* out_file)
+void print_crystal2file(crystal* xtal, FILE* out_file, float symprec)
 {
 
     static int counter = 1;
@@ -74,7 +74,7 @@ void print_crystal2file(crystal* xtal, FILE* out_file)
     fprintf(out_file, "#site_symmetry_group = %s\n",
      site_symm);
 
-    int spglib_spg = detect_spg_using_spglib(xtal);
+    int spglib_spg = detect_spg_using_spglib(xtal, symprec);
     fprintf(out_file, "#SPGLIB_detected_spacegroup = %d\n", spglib_spg);
 
     fprintf(out_file, "#\"All distances in Angstroms and using Cartesian coordinate system\"\n");
@@ -639,9 +639,8 @@ void average_positions_using_list(float     *tempx,
 
 
                             /*spglib check*/
-int detect_spg_using_spglib(crystal* xtal)
+int detect_spg_using_spglib(crystal* xtal, float symprec)
 {
-    float tol = 1e-3;
     int num_atoms_in_cell = xtal->Z * xtal-> num_atoms_in_molecule ;
     if (num_atoms_in_cell < 1 || xtal->Xcord == NULL ||
         xtal->Ycord == NULL || xtal->Zcord == NULL || xtal->atoms == NULL)
@@ -711,7 +710,7 @@ int detect_spg_using_spglib(crystal* xtal)
                                     positions,
                                     types,
                                     num_atoms_in_cell,
-                                    tol);
+                                    symprec);
     //SpglibError error;
     //error = spg_get_error_code();
     //printf("#SPGLIB says %s\n", spg_get_error_message(error));

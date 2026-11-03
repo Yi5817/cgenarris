@@ -102,6 +102,7 @@ int main(int argc, char **argv)
         set.random_seed,
         set.norm_dev,
         set.angle_std,
+        set.symprec,
         world_comm);
 
     }

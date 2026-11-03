@@ -1,8 +1,11 @@
 #ifndef CRYSTAL_UTILS_H
 #define CRYSTAL_UTILS_H
 
+#include <stdio.h>
+#include "cgenarris/crystal.h"
+
 void print_crystal(crystal* xtal);
-void print_crystal2file(crystal* xtal, FILE* out_file);
+void print_crystal2file(crystal* xtal, FILE* out_file, float symprec);
 void print_layer2file(crystal* xtal, FILE* out_file);
 void compute_molecule_COM(crystal xtal, float com[3], int i);
 void remove_close_molecules(crystal* xtal);
@@ -21,7 +24,8 @@ void average_positions_using_list(float     *tempx,
                                   int        Z,
                                   crystal   *xtal,
                                   int       *averaging_list);
-int detect_spg_using_spglib(crystal* xtal);
+#define SPGLIB_SYMPREC_DEFAULT 0.001f
+int detect_spg_using_spglib(crystal* xtal, float symprec);
 void allocate_xtal(crystal* xtal, int Z, int N);
 void free_xtal(crystal* xtal);
 void copy_xtal(crystal* xtal1, crystal* xtal2);

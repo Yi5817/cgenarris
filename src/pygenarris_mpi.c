@@ -52,6 +52,7 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     int random_seed,
     float norm_dev,
     float angle_std,
+    double symprec,
     MPI_Comm world_comm)
 {
     float Zp_max = 1;
@@ -77,6 +78,7 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     set.vol_std = volume_std1;
     set.norm_dev = norm_dev;
     set.angle_std = angle_std;
+    set.symprec = symprec;
     set.sr = -1;
     strncpy(set.spg_dist_type, spg_dist_type, sizeof(set.spg_dist_type) - 1);
     set.spg_dist_type[sizeof(set.spg_dist_type) - 1] = '\0';
@@ -323,7 +325,7 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                     {
                         if (counter < spg_num_structures)
                         {
-                            print_crystal2file(random_crystal, out_file);
+                            print_crystal2file(random_crystal, out_file, set.symprec);
                             // printf("#Rank %8d: Generation successful.\n", my_rank);
                             counter++;
                             success_flag = 1;
@@ -347,7 +349,7 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
                             success_flag = 1;
                             if(counter < spg_num_structures)
                             {
-                                print_crystal2file(random_crystal, out_file);
+                                print_crystal2file(random_crystal, out_file, set.symprec);
                                 // printf("#Rank %8d: Generation successful.\n", rank);
                                 counter++;
                             }

@@ -44,6 +44,7 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     int random_seed,
     float norm_dev,
     float angle_std,
+    double symprec,
     MPI_Comm world_comm);
 
 %apply (float INPLACE_ARRAY2[ANY][ANY]) {(float lattice_vector_2d_from_geo[2][3])};

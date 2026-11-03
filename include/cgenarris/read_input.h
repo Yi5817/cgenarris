@@ -18,12 +18,16 @@ every site-symmetry operation, each atom lands within `tolerance` of an atom
 of the same species; the molecule is then averaged onto the exact symmetry.
 ASU placement does not use it.
 
+`symprec` (Angstrom): spglib tolerance used only to label each written
+structure with `#SPGLIB_detected_spacegroup`. Generation does not use it.
+
 Keys (unit) [default]:
     generation_type         crystal | layer | asu           [crystal]
     number_of_structures    per space group, or total ASUs  (required)
     max_attempts            per space group, or per ASU     [100000]
     random_seed             0 = time based                  [0]
     tolerance               special-position tol, Angstrom  [0.1]
+    symprec                 spglib symprec, Angstrom        [0.001]
   crystal / layer
     Z                       molecules per cell              (required)
     volume_mean             Angstrom^3                      (required)

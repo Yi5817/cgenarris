@@ -77,6 +77,7 @@ int regression_test(MPI_Comm world_comm)
         seed,
         norm_dev,
         angle_std,
+        SPGLIB_SYMPREC_DEFAULT,
         world_comm);
 
     int status = check_geometry_out(&mol, vdw_cutoff_matrix, dim_vdw_matrix,
