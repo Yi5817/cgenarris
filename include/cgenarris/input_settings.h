@@ -21,7 +21,7 @@ typedef struct
     int num_structures;           // crystal/layer: per space group; asu: total
     long max_attempts;            // crystal/layer: per space group; asu: per unit
     int random_seed;              // 0 = time based
-    float tol;                    // numerical tolerance for special positions
+    float tol;                    // special-position tolerance, Angstrom (see read_input.h)
 
     // Crystal and layer
     int Z;                        // molecules (4.0: asymmetric units) per cell
