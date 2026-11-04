@@ -87,6 +87,11 @@ int main(int argc, char **argv)
     int status = 0;
     if(set.generation_type == CRYSTAL)
     {
+        if(my_rank == 0)
+        {
+            print_input_geometry(mol);
+            print_input_settings(set);
+        }
         status = mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
         vdw_cutoff_matrix,
         dim_vdw_matrix,

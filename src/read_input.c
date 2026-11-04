@@ -30,7 +30,6 @@ static void settings_defaults(Settings *set)
     set->norm_dev = 0.4;
     set->angle_std = 8;
     strcpy(set->spg_dist_type, "standard");
-    set->rigid_press = 0;
     set->vdw_matrix = NULL;
     set->interface_area_mean = 0;
     set->interface_area_std = 0;
@@ -131,7 +130,6 @@ static int apply_setting(Settings *set, const char *key, char *value)
         return parse_float(key, value, &set->norm_dev);
     if(!strcmp(key, "lattice_angle_std") || !strcmp(key, "angle_std"))
         return parse_float(key, value, &set->angle_std);
-    if(!strcmp(key, "rigid_press"))          return parse_int(key, value, &set->rigid_press);
     if(!strcmp(key, "spg_distribution_type"))
     {
         if(strcmp(value, "standard") && strcmp(value, "uniform") &&
@@ -428,7 +426,6 @@ void print_input_settings(Settings set)
     printf("Lattice principal component deviation:        %f\n", set.norm_dev);
     printf("Tolerance:                                    %f\n", set.tol);
     printf("spglib symprec:                               %f\n", set.symprec);
-    printf("Use rigid press:                              %d\n", set.rigid_press);
     if(set.n_mol_types > 1)
     {
         printf("Number of Molecules:                          %d\n", set.n_mol_types);

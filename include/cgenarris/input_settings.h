@@ -33,7 +33,6 @@ typedef struct
     float norm_dev;               // lattice principal-component deviation
     float angle_std;              // lattice angle std, degrees
     char spg_dist_type[16];       // standard | uniform | csd | chiral | racemic
-    int rigid_press;
     float *vdw_matrix;            // set by the generator, not parsed
 
     // Layer only

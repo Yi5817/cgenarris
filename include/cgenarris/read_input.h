@@ -37,7 +37,6 @@ Keys (unit) [default]:
     lattice_norm_dev                                        [0.4]
     lattice_angle_std       degrees                         [8]
     spg_distribution_type   standard|uniform|csd|chiral|racemic [standard]
-    rigid_press             0 | 1                           [0]
   layer only
     interface_area_mean     Angstrom^2                      [0]
     interface_area_std      Angstrom^2                      [0]

@@ -66,7 +66,7 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
       exit(EXIT_FAILURE);
     }
 
-    Settings set;
+    Settings set = {0};
     set.num_structures = num_structures;
     set.Z = Z;
     set.vol_attempts = vol_attempt;
@@ -178,15 +178,6 @@ int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
 
     //recenter molecule to origin
     recenter_molecule(mol);
-
-    if (my_rank == 0)
-    {
-        print_input_geometry(mol);
-	print_input_settings(set);
-
-    }
-
-    MPI_Barrier(world_comm);
 
     //inititalise volume
     do {volume = normal_dist_ab(volume_mean, volume_std);} while(volume < 0.1);
