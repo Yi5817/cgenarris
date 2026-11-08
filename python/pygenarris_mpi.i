@@ -23,7 +23,13 @@
 import_array();
 %}
 
-%include "mpi4py/mpi4py.i"
+%import "mpi4py/mpi4py.i"
+%header %{ #include <mpi4py/mpi4py.h> %}
+#if SWIG_VERSION >= 0x040400
+%init %{ if (import_mpi4py() < 0) return -1; %}
+#else
+%init %{ if (import_mpi4py() < 0) return NULL; %}
+#endif
 %mpi4py_typemap(Comm, MPI_Comm);
 
 %apply ( float* IN_ARRAY2, int DIM1, int DIM2) {(float *vdw_matrix, int dim1, int dim2)};

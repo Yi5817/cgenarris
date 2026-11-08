@@ -112,7 +112,7 @@ pygenarris_mpi = Extension(
         spglib_dir,
     ],
     sources=["pygenarris_mpi.i"] + sources_cgenarris + sources_spglib,
-    extra_compile_args=["-std=gnu99", "-fPIC", "-O3", "-Wno-error=int-conversion"],
+    extra_compile_args=["-std=gnu99", "-fPIC", "-O3"],
     swig_opts=[
         "-I./",
         f"-I{include_dir}",
