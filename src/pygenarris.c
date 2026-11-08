@@ -3,7 +3,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <omp.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "pygenarris.h"
 #include "combinatorics.h"

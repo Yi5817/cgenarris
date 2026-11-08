@@ -1,6 +1,10 @@
 #ifndef LATTICE_GENERATOR_H
 #define LATTICE_GENERATOR_H
 
+/* A failed principal-component draw (infeasible volume or exhausted bounded
+ * rejection sampling) returns nonfinite diagonal entries. Callers must reject
+ * that candidate before coordinate conversion. Public void signatures remain.
+ */
 void gen_triclinic_lattice(float lattice_vector[3][3],
                            float target_volume,
                            float norm_std,

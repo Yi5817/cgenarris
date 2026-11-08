@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "crystal_utils.h"
 #include "algebra.h"
@@ -42,7 +42,7 @@ void print_crystal(crystal* xtal)
     }
 }
 
-void print_crystal2file(crystal* xtal, FILE* out_file)
+void print_crystal2file(crystal* xtal, FILE* out_file, float symprec)
 {
 
     static int counter = 1;
@@ -74,7 +74,7 @@ void print_crystal2file(crystal* xtal, FILE* out_file)
     fprintf(out_file, "#site_symmetry_group = %s\n",
      site_symm);
 
-    int spglib_spg = detect_spg_using_spglib(xtal);
+    int spglib_spg = detect_spg_using_spglib(xtal, symprec);
     fprintf(out_file, "#SPGLIB_detected_spacegroup = %d\n", spglib_spg);
 
     fprintf(out_file, "#\"All distances in Angstroms and using Cartesian coordinate system\"\n");
@@ -601,72 +601,46 @@ void average_positions_using_list(float     *tempx,
             len++;
         }
     }
-    //traverse through average list
-    for (int i = 1; i < len; i++)
+    int first = averaging_list[0];
+    int offset = molecule_counter*N;
+    for(int j = 0; j < N; j++)
     {
-        int first_mol = averaging_list[0];
-        int second_mol = averaging_list[i];
-        //loop through atoms in first mol
-        for (int j = 0; j < N; j++)
+        tempx[offset+j] = xtal->Xcord[first+j];
+        tempy[offset+j] = xtal->Ycord[first+j];
+        tempz[offset+j] = xtal->Zcord[first+j];
+        tempatom[2*(offset+j)] = xtal->atoms[2*(first+j)];
+        tempatom[2*(offset+j)+1] = xtal->atoms[2*(first+j)+1];
+    }
+    for(int i = 1; i < len; i++)
+    {
+        int second = averaging_list[i];
+        int mapping[N];
+        if(!match_molecule_atoms(xtal, first, second, N, 0, mapping))
         {
-
-            float min = 0;
-            int mink = 0;
-            float p1[3] =
-            { xtal->Xcord[first_mol+j],
-              xtal->Ycord[first_mol+j],
-              xtal->Zcord[first_mol+j] };
-
-            //add first mol to tempx and tempatoms
-            if (i == 1)
-            {
-                tempx[molecule_counter*N+j] = p1[0];
-                tempy[molecule_counter*N+j] = p1[1];
-                tempz[molecule_counter*N+j] = p1[2];
-                tempatom[2*(molecule_counter*N+j)] = xtal->atoms[2*(first_mol+j)];
-                tempatom[2*(molecule_counter*N+j)+1] = xtal->atoms[2*(first_mol+j)+1];
-            }
-
-            for(int k = 0; k < N; k++)
-            {
-
-                float p2[3] =
-                { xtal->Xcord[second_mol + k],
-                  xtal->Ycord[second_mol + k],
-                  xtal->Zcord[second_mol + k] };
-
-                float temp_min =  (p1[0]-p2[0])*(p1[0]-p2[0]) +
-                                  (p1[1]-p2[1])*(p1[1]-p2[1]) +
-                                  (p1[2]-p2[2])*(p1[2]-p2[2]);
-
-                if(temp_min < min || k == 0)
-                {
-                    min = temp_min;
-                    mink = k;
-                }
-            }
-
-            tempx[molecule_counter*N+j] += xtal->Xcord[second_mol+mink];
-            tempy[molecule_counter*N+j] += xtal->Ycord[second_mol+mink];
-            tempz[molecule_counter*N+j] += xtal->Zcord[second_mol+mink];
-
+            // The caller's finite-coordinate check rejects an invalid merge.
+            for(int j = 0; j < N; j++)
+                tempx[offset+j] = tempy[offset+j] = tempz[offset+j] = NAN;
+            return;
+        }
+        for(int j = 0; j < N; j++)
+        {
+            tempx[offset+j] += xtal->Xcord[second+mapping[j]];
+            tempy[offset+j] += xtal->Ycord[second+mapping[j]];
+            tempz[offset+j] += xtal->Zcord[second+mapping[j]];
         }
     }
-
-    //take average
-    for (int i = 0; i < N; i++)
+    for(int j = 0; j < N; j++)
     {
-        tempx[molecule_counter*N+i] /= len;
-        tempy[molecule_counter*N+i] /= len;
-        tempz[molecule_counter*N+i] /= len;
+        tempx[offset+j] /= len;
+        tempy[offset+j] /= len;
+        tempz[offset+j] /= len;
     }
 }
 
 
                             /*spglib check*/
-int detect_spg_using_spglib(crystal* xtal)
+int detect_spg_using_spglib(crystal* xtal, float symprec)
 {
-    float tol = 1e-3;
     int num_atoms_in_cell = xtal->Z * xtal-> num_atoms_in_molecule ;
     if (num_atoms_in_cell < 1 || xtal->Xcord == NULL ||
         xtal->Ycord == NULL || xtal->Zcord == NULL || xtal->atoms == NULL)
@@ -736,7 +710,7 @@ int detect_spg_using_spglib(crystal* xtal)
                                     positions,
                                     types,
                                     num_atoms_in_cell,
-                                    tol);
+                                    symprec);
     //SpglibError error;
     //error = spg_get_error_code();
     //printf("#SPGLIB says %s\n", spg_get_error_message(error));

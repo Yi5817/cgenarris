@@ -3,7 +3,7 @@
 #include <string.h>
 #include "spglib.h"
 #include "algebra.h"
-#include "read_input.h"
+#include "cgenarris/read_input.h"
 #include "spg_generation.h"
 #include "molecule_placement.h"
 #include "molecule_utils.h"

@@ -1,0 +1,26 @@
+# Asymmetric-unit (ASU) generation for a 1:1 co-crystal (CSD JESMOK).
+# Molecules are read from geometry_0.in and geometry_1.in in this directory.
+# Run:  mpirun -n 2 cgenarris
+
+generation_type         asu
+
+# Number of molecule types and copies of each per asymmetric unit
+molecule_types          2
+stoichiometry           1 1
+
+# Total number of asymmetric units to generate (split across MPI ranks)
+number_of_structures    20
+
+# Accept a placement when the closest intermolecular distance, divided by
+# the sum of the two atoms' van der Waals radii, lies in (asu_sr_min, asu_sr_max)
+asu_sr_min              0.75
+asu_sr_max              1.3
+
+# Random placements tried per asymmetric unit before giving up
+max_attempts            100000
+
+# Base random seed; rank r uses 7 r + random_seed (as for crystals). 0 = time based
+random_seed             42
+
+# Output file, one geometry.out-style block per asymmetric unit
+asu_output_file         asu.out

@@ -321,7 +321,27 @@ static void gen_principal_comps(float *ax,
                                 int type)
 {
     float x, y, z;
+    // The product of three components >= LOWB cannot be below LOWB^3.
+    // NaN marks a rejected draw for the existing void lattice API.
+    if(!isfinite(target_volume) || target_volume < LOWB*LOWB*LOWB ||
+       !isfinite(norm_std) || norm_std < 0)
+    {
+        *ax = *by = *cz = NAN;
+        return;
+    }
+    if(target_volume == LOWB*LOWB*LOWB)
+    {
+        *ax = *by = *cz = LOWB;
+        return;
+    }
+    int attempts = 0;
     do{
+        // Near the minimum product, feasible draws may be arbitrarily rare.
+        if(attempts++ == 10000)
+        {
+            *ax = *by = *cz = NAN;
+            return;
+        }
         do {x = normal_dist_ab(1, norm_std); } while(x < EPS);
 
         if (type == DISTINCT)

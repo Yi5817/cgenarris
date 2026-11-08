@@ -33,7 +33,7 @@
 *.x86_64
 *.hex
 
-!test/**/geometry.out
+!tests/**/geometry.out
 
 # Debug files
 *.dSYM/
@@ -88,3 +88,13 @@ Thumbs.db
 
 # Static analysis
 *.sarif
+
+# SWIG-generated wrappers (regenerated at build time)
+*_wrap.c
+python/pygenarris_mpi.py
+python/pygenarris.py
+python/rpack/rigid_press/rigid_press.py
+__pycache__/
+
+# Example / test run output
+examples/asu/run/

@@ -2,11 +2,12 @@
 #define PYGENARRIS_MPI_H
 
 #include "mpi.h"
-#include "crystal.h"
+#include "cgenarris/crystal.h"
 
 void print_time(void);
 
-void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
+// Returns 0 on success, -1 on output failure on every rank.
+int mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     float *vdw_matrix,
     int dim1,
     int dim2,
@@ -21,6 +22,7 @@ void mpi_generate_molecular_crystals_with_vdw_cutoff_matrix(
     int random_seed,
     float norm_dev,
     float angle_std,
+    double symprec,
     MPI_Comm world_comm);
 
 void mpi_generate_layer_with_vdw_cutoff_matrix(
@@ -49,6 +51,7 @@ void get_compatible_spg(
 void send_xtal(MPI_Comm comm, int destination, crystal* xtal, int total_atoms);
 void receive_xtal(MPI_Comm comm, int source, crystal* xtal, int total_atoms);
 
+/* tolerance: special-position tolerance in Angstrom, as `tolerance` in read_input.h */
 int num_compatible_spacegroups(int Z, double tolerance);
 int num_compatible_layergroups(int Z, double tolerance,float volume,float lattice_vector_2d_from_geo[2][3]);
 
